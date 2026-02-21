@@ -198,10 +198,7 @@ export default function BuyVideosPage() {
   const nextTier = currentTierIdx < TIER_LADDER.length - 1 ? TIER_LADDER[currentTierIdx + 1] : null;
   const progressPct = (() => {
     if (!nextTier) return 100;
-    const cur = TIER_LADDER[currentTierIdx];
-    const range = nextTier.min - cur.min;
-    const progress = lifetimeCount - cur.min;
-    return Math.min(100, Math.max(0, (progress / range) * 100));
+    return Math.min(100, Math.max(0, (lifetimeCount / nextTier.min) * 100));
   })();
 
   return (
