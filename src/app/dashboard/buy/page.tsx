@@ -80,10 +80,10 @@ const DISCOUNT_TIERS = [
 ];
 
 const TIER_LADDER = [
-  { name: "Starter", min: 1, pct: 0 },
-  { name: "Bronze", min: 3, pct: 10 },
-  { name: "Silver", min: 8, pct: 15 },
-  { name: "Gold", min: 12, pct: 20 },
+  { name: "Rookie", min: 1, pct: 0, perks: ["Dashboard access", "Standard delivery"] },
+  { name: "Regular", min: 3, pct: 10, perks: ["10% off forever", "WhatsApp access"] },
+  { name: "Hustler", min: 8, pct: 15, perks: ["15% off forever", "Priority queue", "Extra revision"] },
+  { name: "Legend", min: 12, pct: 20, perks: ["20% off forever", "Strategy session", "Analytics roast"] },
 ];
 
 function getEmbedUrl(url: string): string {
@@ -196,7 +196,6 @@ export default function BuyVideosPage() {
     return idx;
   })();
   const nextTier = currentTierIdx < TIER_LADDER.length - 1 ? TIER_LADDER[currentTierIdx + 1] : null;
-  const videosToNext = nextTier ? nextTier.min - lifetimeCount : 0;
   const progressPct = (() => {
     if (!nextTier) return 100;
     const cur = TIER_LADDER[currentTierIdx];
@@ -207,27 +206,44 @@ export default function BuyVideosPage() {
 
   return (
     <div>
-      {/* Tier progress nudge */}
-      {nextTier && (
-        <div className="mb-8 flex items-center gap-4 bg-surface/60 border border-border rounded-brand px-5 py-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-cream text-xs font-medium">
-                {TIER_LADDER[currentTierIdx].name}{userDiscountPct > 0 ? ` · ${userDiscountPct}% off` : ""}
-              </span>
-              <span className="text-cream-31 text-xs">
-                {videosToNext} more video{videosToNext !== 1 ? "s" : ""} to <span className="text-accent font-medium">{nextTier.name} ({nextTier.pct}% off)</span>
-              </span>
+      {/* Next tier unlock card */}
+      {nextTier ? (
+        <div className="mb-8 bg-surface border border-accent/20 rounded-brand p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-lg">🔒</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-cream font-display font-bold text-sm">{nextTier.name}</span>
+                <span className="text-accent text-xs font-medium">{nextTier.pct}% off</span>
+              </div>
             </div>
-            <div className="h-1.5 bg-background rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-1000 ease-out"
-                style={{
-                  width: `${progressPct}%`,
-                  background: "linear-gradient(90deg, #eda4e8, #ddf073)",
-                }}
-              />
-            </div>
+            <span className="text-cream-31 text-xs font-medium">
+              {lifetimeCount}/{nextTier.min} videos
+            </span>
+          </div>
+          <div className="h-2 bg-background rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full rounded-full transition-all duration-1000 ease-out"
+              style={{
+                width: `${progressPct}%`,
+                background: "linear-gradient(90deg, #eda4e8, #ddf073)",
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {nextTier.perks.map((perk) => (
+              <span key={perk} className="text-[10px] text-cream-31 bg-background px-2 py-1 rounded-full">
+                {perk}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-8 bg-surface border border-lime/20 rounded-brand p-5 flex items-center gap-3">
+          <span className="text-lg">🔓</span>
+          <div>
+            <p className="text-cream font-display font-bold text-sm">You&apos;re a Legend</p>
+            <p className="text-lime text-xs">Maximum tier unlocked — {userDiscountPct}% off everything, forever</p>
           </div>
         </div>
       )}
