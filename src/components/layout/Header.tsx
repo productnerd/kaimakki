@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
+import { useCart } from "@/providers/CartProvider";
 import Button from "@/components/ui/Button";
 import { useState } from "react";
 
 export default function Header() {
   const { user, profile, signOut, loading } = useAuth();
+  const { itemCount, toggleCart } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -35,6 +37,21 @@ export default function Header() {
           >
             Pricing
           </Link>
+
+          {/* Cart button */}
+          <button
+            onClick={toggleCart}
+            className="relative text-cream-78 hover:text-cream transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
+            </svg>
+            {itemCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {itemCount}
+              </span>
+            )}
+          </button>
 
           {!loading && (
             <>

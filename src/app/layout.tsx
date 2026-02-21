@@ -3,8 +3,10 @@ import { Montserrat } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { CartProvider } from "@/providers/CartProvider";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import CartDrawer from "@/components/cart/CartDrawer";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -38,9 +40,12 @@ export default function RootLayout({
     <html lang="en" className={`${montserrat.variable} ${satoshi.variable}`}>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-cream">
         <AuthProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <CartProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <CartDrawer />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>
