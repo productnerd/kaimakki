@@ -47,7 +47,7 @@ const COLUMNS = [
   },
   {
     title: "Review",
-    statuses: ["first_draft"],
+    statuses: ["awaiting_feedback"],
   },
   {
     title: "Completed",
@@ -59,7 +59,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: BadgeVariant }> = {
   submitted: { label: "Submitted", variant: "default" },
   awaiting_assets: { label: "Awaiting Assets", variant: "warning" },
   in_production: { label: "In Production", variant: "accent" },
-  first_draft: { label: "First Draft", variant: "pink" },
+  awaiting_feedback: { label: "Awaiting Feedback", variant: "pink" },
   completed: { label: "Completed", variant: "success" },
 };
 
@@ -122,10 +122,6 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display font-black text-3xl md:text-4xl text-cream mb-8">
-        Your Orders
-      </h1>
-
       {/* Kanban board */}
       <div className="flex flex-col lg:flex-row gap-6 lg:overflow-x-auto lg:pb-4">
         {COLUMNS.map((col) => {

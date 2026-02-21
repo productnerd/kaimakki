@@ -43,7 +43,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: BadgeVariant }> = {
   submitted: { label: "Submitted", variant: "default" },
   awaiting_assets: { label: "Awaiting Assets", variant: "warning" },
   in_production: { label: "In Production", variant: "accent" },
-  first_draft: { label: "First Draft", variant: "pink" },
+  awaiting_feedback: { label: "Awaiting Feedback", variant: "pink" },
   completed: { label: "Completed", variant: "success" },
 };
 
@@ -52,7 +52,7 @@ const STATUS_OPTIONS = [
   { value: "submitted", label: "Submitted" },
   { value: "awaiting_assets", label: "Awaiting Assets" },
   { value: "in_production", label: "In Production" },
-  { value: "first_draft", label: "First Draft" },
+  { value: "awaiting_feedback", label: "Awaiting Feedback" },
   { value: "completed", label: "Completed" },
 ];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCart } from "@/providers/CartProvider";
@@ -17,13 +18,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
       <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-display font-black text-xl text-cream">
-            Kaimakki
-          </span>
-          <span className="text-accent font-display font-black text-xl">
-            Studio
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="Kaimakki Studio"
+            width={140}
+            height={40}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -31,9 +34,9 @@ export default function Header() {
           {isOnboarding ? (
             <button
               onClick={signOut}
-              className="text-sm text-cream-31 hover:text-cream transition-colors"
+              className="text-xs uppercase tracking-wider text-cream-31 hover:text-cream transition-colors"
             >
-              Sign out
+              SIGN OUT
             </button>
           ) : !loading && user ? (
             <div className="flex items-center gap-4">
@@ -53,34 +56,34 @@ export default function Header() {
               </button>
               {profile?.is_admin && (
                 <Link href="/admin">
-                  <Button variant="ghost" size="sm">
-                    Admin
+                  <Button variant="ghost" size="sm" className="uppercase tracking-wider text-xs">
+                    ADMIN
                   </Button>
                 </Link>
               )}
               <button
                 onClick={signOut}
-                className="text-sm text-cream-31 hover:text-cream transition-colors"
+                className="text-xs uppercase tracking-wider text-cream-31 hover:text-cream transition-colors"
               >
-                Sign out
+                SIGN OUT
               </button>
             </div>
           ) : !loading ? (
             <>
               <Link
                 href="/"
-                className="text-sm text-cream-78 hover:text-cream transition-colors"
+                className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
               >
-                Recipes
+                RECIPES
               </Link>
               <Link
                 href="/pricing"
-                className="text-sm text-cream-78 hover:text-cream transition-colors"
+                className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
               >
-                Pricing
+                PRICING
               </Link>
               <Link href="/auth/login">
-                <Button size="sm">Sign in</Button>
+                <Button size="sm" className="uppercase tracking-wider text-xs">SIGN IN</Button>
               </Link>
             </>
           ) : null}
@@ -120,30 +123,30 @@ export default function Header() {
       {mobileOpen && (
         <div className="md:hidden bg-surface border-b border-border px-6 py-4 flex flex-col gap-3">
           {isOnboarding ? (
-            <button onClick={signOut} className="text-sm text-cream-31 text-left">
-              Sign out
+            <button onClick={signOut} className="text-xs uppercase tracking-wider text-cream-31 text-left">
+              SIGN OUT
             </button>
           ) : user ? (
             <>
               {profile?.is_admin && (
-                <Link href="/admin" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-                  Admin
+                <Link href="/admin" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
+                  ADMIN
                 </Link>
               )}
-              <button onClick={signOut} className="text-sm text-cream-31 text-left">
-                Sign out
+              <button onClick={signOut} className="text-xs uppercase tracking-wider text-cream-31 text-left">
+                SIGN OUT
               </button>
             </>
           ) : (
             <>
-              <Link href="/" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-                Recipes
+              <Link href="/" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
+                RECIPES
               </Link>
-              <Link href="/pricing" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-                Pricing
+              <Link href="/pricing" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
+                PRICING
               </Link>
               <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button size="sm" className="w-full">Sign in</Button>
+                <Button size="sm" className="w-full uppercase tracking-wider text-xs">SIGN IN</Button>
               </Link>
             </>
           )}

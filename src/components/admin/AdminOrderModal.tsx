@@ -46,8 +46,8 @@ interface AdminOrderModalProps {
 const VALID_TRANSITIONS: Record<string, string[]> = {
   submitted: ["awaiting_assets", "in_production", "cancelled"],
   awaiting_assets: ["in_production", "cancelled"],
-  in_production: ["first_draft", "cancelled"],
-  first_draft: ["completed", "in_production"],
+  in_production: ["awaiting_feedback", "cancelled"],
+  awaiting_feedback: ["completed", "in_production"],
   completed: [],
   cancelled: [],
 };
@@ -56,7 +56,7 @@ const STATUS_BADGE_VARIANT: Record<string, "default" | "warning" | "accent" | "p
   submitted: "default",
   awaiting_assets: "warning",
   in_production: "accent",
-  first_draft: "pink",
+  awaiting_feedback: "pink",
   completed: "success",
   cancelled: "default",
 };

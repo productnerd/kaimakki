@@ -63,47 +63,50 @@ const BUNDLES: Bundle[] = [
   },
 ];
 
+const RECIPE_PRICES: Record<string, number> = {
+  "6982115e-5a12-4b39-879b-685f83347a99": 95,
+  "7f1fd5c9-58d4-4934-a880-a1894575836a": 150,
+  "ba0b3663-6331-4f39-8057-48c03a8f2390": 140,
+  "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce": 110,
+  "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1": 150,
+  "be9b4c37-5d46-4391-bc83-ae13a188ec83": 180,
+};
+
+const DISCOUNT_TIERS = [
+  { min: 12, pct: 20 },
+  { min: 8, pct: 15 },
+  { min: 3, pct: 10 },
+];
+
+const TIER_LADDER = [
+  { name: "Starter", min: 1, pct: 0 },
+  { name: "Bronze", min: 3, pct: 10 },
+  { name: "Silver", min: 8, pct: 15 },
+  { name: "Gold", min: 12, pct: 20 },
+];
+
 function getEmbedUrl(url: string): string {
-  // YouTube Shorts: /shorts/VIDEO_ID → /embed/VIDEO_ID
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?]+)/);
   if (shortsMatch) {
     return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&loop=1&controls=0&playlist=${shortsMatch[1]}`;
   }
-  // YouTube regular: /watch?v=VIDEO_ID → /embed/VIDEO_ID
   const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
   if (watchMatch) {
     return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1&mute=1&controls=0`;
   }
-  // Fallback: append /embed/
   return url.replace(/\/?$/, "/embed/");
 }
 
-export default function HomePage() {
+export default function BuyVideosPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const [userDiscountPct, setUserDiscountPct] = useState(0);
+  const [lifetimeCount, setLifetimeCount] = useState(0);
   const { addItem } = useCart();
   const { user } = useAuth();
   const router = useRouter();
-
-  // Map recipe IDs to their price in euros for bundle totals
-  const RECIPE_PRICES: Record<string, number> = {
-    "6982115e-5a12-4b39-879b-685f83347a99": 95,
-    "7f1fd5c9-58d4-4934-a880-a1894575836a": 150,
-    "ba0b3663-6331-4f39-8057-48c03a8f2390": 140,
-    "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce": 110,
-    "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1": 150,
-    "be9b4c37-5d46-4391-bc83-ae13a188ec83": 180,
-  };
-
-  // Discount tiers: 3+ = 10%, 8+ = 15%, 12+ = 20%
-  const DISCOUNT_TIERS = [
-    { min: 12, pct: 20 },
-    { min: 8, pct: 15 },
-    { min: 3, pct: 10 },
-  ];
 
   function getBundleVideoCount(bundle: Bundle): number {
     return bundle.items.reduce((n, i) => n + i.quantity, 0);
@@ -124,7 +127,6 @@ export default function HomePage() {
     );
   }
 
-  // Effective discount: the higher of the user's personal tier or the bundle's volume tier
   function getEffectiveBundlePct(bundle: Bundle): number {
     return Math.max(userDiscountPct, getBundleDiscountPct(bundle));
   }
@@ -139,10 +141,6 @@ export default function HomePage() {
   }
 
   async function handleAddBundle(bundle: Bundle) {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     setAddingBundle(bundle.name);
     for (const item of bundle.items) {
       for (let i = 0; i < item.quantity; i++) {
@@ -166,14 +164,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setUserDiscountPct(0);
-      return;
-    }
+    if (!user) return;
     const supabase = createClient();
     supabase
       .from("brands")
-      .select("brand_volume(current_discount_percent)")
+      .select("brand_volume(current_discount_percent, lifetime_video_count)")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle()
@@ -182,46 +177,67 @@ export default function HomePage() {
           ? data.brand_volume[0]
           : data?.brand_volume;
         setUserDiscountPct(vol?.current_discount_percent ?? 0);
+        setLifetimeCount(vol?.lifetime_video_count ?? 0);
       });
   }, [user]);
 
   async function handleAddToCart(e: React.MouseEvent, recipeId: string) {
     e.stopPropagation();
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     await addItem(recipeId);
   }
 
+  // Tier progress computation
+  const currentTierIdx = (() => {
+    let idx = 0;
+    for (let i = TIER_LADDER.length - 1; i >= 0; i--) {
+      if (lifetimeCount >= TIER_LADDER[i].min) { idx = i; break; }
+    }
+    return idx;
+  })();
+  const nextTier = currentTierIdx < TIER_LADDER.length - 1 ? TIER_LADDER[currentTierIdx + 1] : null;
+  const videosToNext = nextTier ? nextTier.min - lifetimeCount : 0;
+  const progressPct = (() => {
+    if (!nextTier) return 100;
+    const cur = TIER_LADDER[currentTierIdx];
+    const range = nextTier.min - cur.min;
+    const progress = lifetimeCount - cur.min;
+    return Math.min(100, Math.max(0, (progress / range) * 100));
+  })();
+
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      {/* Hero */}
-      <div className="text-center mb-16">
-        <h1 className="font-display font-black text-4xl md:text-6xl text-cream mb-4 tracking-tight">
-          The more you post,<br />
-          <span className="text-accent">the less you pay.</span>
-        </h1>
-        <p className="text-cream-61 text-lg max-w-2xl mx-auto mb-6">
-          Pick a recipe, send footage, get scroll-stopping videos.
-          The more you order, you unlock up to 20% lifetime discount + perks.
-          If you sit on your content for over a month? We donate your prepayment to charity. You&apos;re welcome.
-        </p>
-        <div className="inline-flex items-center gap-2 bg-surface border border-border rounded-brand px-5 py-3">
-          <span className="text-lime text-sm font-medium">The deal:</span>
-          <span className="text-cream-61 text-sm">
-            Pay upfront &rarr; We send you instructions &rarr; You film &rarr; Send us footage &rarr; Our humans edit &rarr; You post &rarr; Repeat (or we donate your money)
-          </span>
+    <div>
+      {/* Tier progress nudge */}
+      {nextTier && (
+        <div className="mb-8 flex items-center gap-4 bg-surface/60 border border-border rounded-brand px-5 py-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-cream text-xs font-medium">
+                {TIER_LADDER[currentTierIdx].name}{userDiscountPct > 0 ? ` · ${userDiscountPct}% off` : ""}
+              </span>
+              <span className="text-cream-31 text-xs">
+                {videosToNext} more video{videosToNext !== 1 ? "s" : ""} to <span className="text-accent font-medium">{nextTier.name} ({nextTier.pct}% off)</span>
+              </span>
+            </div>
+            <div className="h-1.5 bg-background rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000 ease-out"
+                style={{
+                  width: `${progressPct}%`,
+                  background: "linear-gradient(90deg, #eda4e8, #ddf073)",
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bundles */}
-      <div className="mb-16">
-        <h2 className="font-display font-bold text-2xl text-cream mb-2">
+      <div className="mb-12">
+        <h2 className="font-display font-bold text-xl text-cream mb-2">
           Bundles
         </h2>
         <p className="text-cream-31 text-sm mb-6">
-          Commit to more. Save more. Procrastinate less. (Seriously, the charity thing is real.)
+          Commit to more. Save more. Procrastinate less.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {BUNDLES.map((bundle) => (
@@ -230,7 +246,7 @@ export default function HomePage() {
               className="border-accent/30 flex flex-col"
             >
               <Badge variant="accent" className="uppercase tracking-wide self-start mb-3">
-                {bundle.items.reduce((n, i) => n + i.quantity, 0)} videos
+                {getBundleVideoCount(bundle)} videos
               </Badge>
 
               <h3 className="font-display font-bold text-lg text-cream mb-2">
@@ -276,7 +292,10 @@ export default function HomePage() {
       </div>
 
       {/* Recipe Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <h2 className="font-display font-bold text-xl text-cream mb-6">
+        Individual Recipes
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 5 }).map((_, i) => (
               <div
@@ -350,13 +369,7 @@ export default function HomePage() {
               <Card
                 hover
                 className="border-dashed border-accent/30 flex flex-col items-center justify-center text-center p-4"
-                onClick={() => {
-                  if (!user) {
-                    router.push("/auth/login");
-                    return;
-                  }
-                  router.push("/custom-request");
-                }}
+                onClick={() => router.push("/custom-request")}
               >
                 <div className="text-accent text-3xl mb-2">+</div>
                 <h3 className="font-display font-bold text-sm text-cream mb-1">

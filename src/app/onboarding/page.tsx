@@ -181,7 +181,7 @@ export default function OnboardingPage() {
 
       // 4. Refresh profile and redirect
       await refreshProfile();
-      router.push("/dashboard");
+      router.push("/dashboard/buy");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import RewardsTracker from "@/components/rewards/RewardsTracker";
 
 type Recipe = {
   name: string;
@@ -12,25 +12,17 @@ type Recipe = {
   complexity: string;
 };
 
-type Tier = {
-  name: string;
-  min_video_count: number;
-  discount_percent: number;
-};
-
 export default function PricingPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [tiers, setTiers] = useState<Tier[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase.from("video_recipes").select("name, price_cents, turnaround_days, complexity").eq("is_active", true).order("sort_order"),
-      supabase.from("discount_tiers").select("*").order("sort_order"),
-    ]).then(([recipesRes, tiersRes]) => {
-      setRecipes(recipesRes.data || []);
-      setTiers(tiersRes.data || []);
-    });
+    supabase
+      .from("video_recipes")
+      .select("name, price_cents, turnaround_days, complexity")
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setRecipes(data || []));
   }, []);
 
   return (
@@ -78,50 +70,40 @@ export default function PricingPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-cream-31 text-sm mt-4">
-          Add-on: Additional aspect ratio — +&euro;20 per video
-        </p>
+        <div className="mt-4 space-y-1">
+          <p className="text-cream-31 text-sm">Add-ons per video:</p>
+          <ul className="text-cream-31 text-sm space-y-0.5">
+            <li>Additional aspect ratio — +&euro;20</li>
+            <li>Stock footage — +&euro;15</li>
+            <li>AI voiceover — +&euro;25</li>
+            <li>Expedited delivery (2 days) — +&euro;40</li>
+          </ul>
+        </div>
       </div>
 
-      {/* Volume discount tiers */}
-      <div>
+      {/* Rewards Roadmap */}
+      <div className="mb-16">
         <h2 className="font-display font-bold text-xl text-cream mb-3">
           The Loyalty Ladder
         </h2>
-        <p className="text-cream-61 text-sm mb-6">
+        <p className="text-cream-61 text-sm mb-8">
           Order more, pay less. Forever. Once you unlock a tier, it&apos;s yours to keep.
-          Think of it as a reward for actually following through on your content strategy.
+          Plus perks that actually matter.
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {tiers.map((tier) => (
-            <Card key={tier.name}>
-              <div className="text-center">
-                <p className="font-display font-bold text-2xl text-accent mb-1">
-                  {tier.discount_percent}%
-                </p>
-                <p className="font-display font-bold text-cream text-sm mb-2">
-                  {tier.name}
-                </p>
-                <p className="text-cream-31 text-xs">
-                  {tier.min_video_count === 1
-                    ? "1-2 videos"
-                    : `${tier.min_video_count}+ videos`}
-                </p>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <RewardsTracker mode="pricing" />
+      </div>
 
-        <div className="mt-8 bg-surface rounded-brand p-6 border border-border">
-          <h3 className="font-display font-bold text-cream mb-3">The fine print (it&apos;s actually good)</h3>
-          <ul className="space-y-2 text-sm text-cream-61">
-            <li>1. Your discount is based on your brand&apos;s total video orders. Lifetime. It only goes up.</li>
-            <li>2. Once unlocked, a tier is yours forever. We don&apos;t do takebacks.</li>
-            <li>3. At checkout, we calculate your discount based on your current count + the new order.</li>
-            <li>4. You pay upfront. If you don&apos;t ship footage or post within 30 days, we donate a portion to charity. Consider it motivation.</li>
-          </ul>
-        </div>
+      {/* Fine print */}
+      <div className="bg-surface rounded-brand p-6 border border-border">
+        <h3 className="font-display font-bold text-cream mb-3">The fine print (it&apos;s actually good)</h3>
+        <ul className="space-y-2 text-sm text-cream-61">
+          <li>1. Your discount is based on your brand&apos;s total video orders. Lifetime. It only goes up.</li>
+          <li>2. Once unlocked, a tier is yours forever. We don&apos;t do takebacks.</li>
+          <li>3. At checkout, we apply your highest discount to your most expensive video first. Maximum savings.</li>
+          <li>4. You pay upfront. If you don&apos;t ship footage or post within 30 days, we donate a portion to charity. Consider it motivation.</li>
+          <li>5. Perks are cumulative — unlock Bronze and you keep those perks at Silver and Gold too.</li>
+        </ul>
       </div>
     </div>
   );

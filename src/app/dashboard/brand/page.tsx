@@ -17,43 +17,24 @@ type BrandAsset = {
   asset_type: string;
 };
 
-type BrandVolume = {
-  lifetime_video_count: number;
-  lifetime_spent_cents: number;
-  lifetime_saved_cents: number;
-  current_discount_percent: number;
-};
-
 type Brand = {
   id: string;
   name: string;
-  website_url: string | null;
+  broll_folder_url: string | null;
   brand_assets: BrandAsset[];
-  brand_volume: BrandVolume[] | BrandVolume | null;
 };
 
-type DiscountTier = {
-  id: string;
-  slug: string;
-  name: string;
-  min_video_count: number;
-  discount_percent: number;
-};
-
-export default function BrandPage() {
+export default function BrandAssetsPage() {
   const { user } = useAuth();
   const supabase = createClient();
 
   const [brand, setBrand] = useState<Brand | null>(null);
-  const [tiers, setTiers] = useState<DiscountTier[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Brand info form
-  const [name, setName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState("");
+  // B-roll folder
+  const [brollUrl, setBrollUrl] = useState("");
+  const [savingBroll, setSavingBroll] = useState(false);
+  const [brollSuccess, setBrollSuccess] = useState(false);
 
   // Add asset form
   const [newAssetLabel, setNewAssetLabel] = useState("");
@@ -68,65 +49,36 @@ export default function BrandPage() {
   async function fetchData() {
     setLoading(true);
 
-    const [brandResult, tiersResult] = await Promise.all([
-      supabase
-        .from("brands")
-        .select("*, brand_assets(*), brand_volume(*)")
-        .eq("user_id", user!.id)
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("discount_tiers")
-        .select("*")
-        .order("min_video_count", { ascending: true }),
-    ]);
+    const { data: brandResult } = await supabase
+      .from("brands")
+      .select("id, name, broll_folder_url, brand_assets(*)")
+      .eq("user_id", user!.id)
+      .limit(1)
+      .maybeSingle();
 
-    if (brandResult.data) {
-      const b = brandResult.data as Brand;
+    if (brandResult) {
+      const b = brandResult as Brand;
       setBrand(b);
-      setName(b.name);
-      setWebsiteUrl(b.website_url ?? "");
-    }
-
-    if (tiersResult.data) {
-      setTiers(tiersResult.data as DiscountTier[]);
+      setBrollUrl(b.broll_folder_url ?? "");
     }
 
     setLoading(false);
   }
 
-  const volume: BrandVolume | null = brand
-    ? Array.isArray(brand.brand_volume)
-      ? brand.brand_volume[0] ?? null
-      : brand.brand_volume
-    : null;
+  async function handleSaveBroll() {
+    if (!brand) return;
+    setSavingBroll(true);
+    setBrollSuccess(false);
 
-  // --- Brand Info ---
-
-  async function handleSaveBrand() {
-    if (!brand || !name.trim()) return;
-    setSaving(true);
-    setError("");
-    setSaveSuccess(false);
-
-    const { error: updateError } = await supabase
+    await supabase
       .from("brands")
-      .update({
-        name: name.trim(),
-        website_url: websiteUrl.trim() || null,
-      })
+      .update({ broll_folder_url: brollUrl.trim() || null })
       .eq("id", brand.id);
 
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }
-    setSaving(false);
+    setBrollSuccess(true);
+    setTimeout(() => setBrollSuccess(false), 3000);
+    setSavingBroll(false);
   }
-
-  // --- Brand Assets ---
 
   async function handleAddAsset() {
     if (!brand || !newAssetLabel.trim() || !newAssetUrl.trim()) return;
@@ -171,26 +123,6 @@ export default function BrandPage() {
     }
   }
 
-  // --- Tier helpers ---
-
-  function getCurrentTierIndex(): number {
-    if (!volume) return -1;
-    for (let i = tiers.length - 1; i >= 0; i--) {
-      if (volume.lifetime_video_count >= tiers[i].min_video_count) return i;
-    }
-    return -1;
-  }
-
-  const currentTierIndex = getCurrentTierIndex();
-  const nextTier =
-    currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
-  const videosToNextTier =
-    nextTier && volume
-      ? nextTier.min_video_count - volume.lifetime_video_count
-      : 0;
-
-  // --- Render ---
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
@@ -210,51 +142,42 @@ export default function BrandPage() {
   return (
     <div>
       <div className="max-w-2xl mx-auto flex flex-col gap-8">
-        <h1 className="font-display font-bold text-3xl text-cream">
-          Brand Management
-        </h1>
-
-        {/* Section 1: Brand Info */}
+        {/* B-roll Folder */}
         <Card>
           <div className="flex flex-col gap-5">
-            <h2 className="font-display font-semibold text-xl text-cream">
-              Brand Info
-            </h2>
+            <div>
+              <h2 className="font-display font-semibold text-xl text-cream">
+                B-roll Folder
+              </h2>
+              <p className="text-cream-31 text-sm mt-1">
+                Share a link to your raw footage (Google Drive, Dropbox, etc.) so we can grab what we need.
+              </p>
+            </div>
 
             <Input
-              label="Brand name"
-              placeholder="Your brand name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            <Input
-              label="Website URL"
+              label="Folder URL"
               type="url"
-              placeholder="https://yourbrand.com"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..."
+              value={brollUrl}
+              onChange={(e) => setBrollUrl(e.target.value)}
             />
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
-
-            {saveSuccess && (
-              <p className="text-sm text-green-400">Changes saved.</p>
+            {brollSuccess && (
+              <p className="text-sm text-green-400">Saved.</p>
             )}
 
             <div>
               <Button
-                loading={saving}
-                disabled={!name.trim()}
-                onClick={handleSaveBrand}
+                loading={savingBroll}
+                onClick={handleSaveBroll}
               >
-                Save changes
+                Save
               </Button>
             </div>
           </div>
         </Card>
 
-        {/* Section 2: Brand Assets */}
+        {/* Brand Assets */}
         <Card>
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
@@ -334,89 +257,6 @@ export default function BrandPage() {
                   Add
                 </Button>
               </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Section 3: Volume Tier Progress */}
-        <Card>
-          <div className="flex flex-col gap-5">
-            <h2 className="font-display font-semibold text-xl text-cream">
-              Volume Tier Progress
-            </h2>
-
-            {volume ? (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-background rounded-brand border border-border">
-                    <p className="text-xs text-cream-31 mb-1">Videos ordered</p>
-                    <p className="text-xl font-semibold text-cream">
-                      {volume.lifetime_video_count}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-background rounded-brand border border-border">
-                    <p className="text-xs text-cream-31 mb-1">Current discount</p>
-                    <p className="text-xl font-semibold text-accent">
-                      {volume.current_discount_percent}%
-                    </p>
-                  </div>
-                  <div className="p-4 bg-background rounded-brand border border-border">
-                    <p className="text-xs text-cream-31 mb-1">Total spent</p>
-                    <p className="text-xl font-semibold text-cream">
-                      &euro;{(volume.lifetime_spent_cents / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-background rounded-brand border border-border">
-                    <p className="text-xs text-cream-31 mb-1">Total saved</p>
-                    <p className="text-xl font-semibold text-green-400">
-                      &euro;{(volume.lifetime_saved_cents / 100).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Tier badges */}
-                {tiers.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tiers.map((tier, i) => (
-                      <Badge
-                        key={tier.id}
-                        variant={
-                          i === currentTierIndex
-                            ? "accent"
-                            : i < currentTierIndex
-                              ? "success"
-                              : "default"
-                        }
-                      >
-                        {tier.name} ({tier.discount_percent}%)
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                {/* Next tier message */}
-                {nextTier && (
-                  <p className="text-sm text-cream-61">
-                    {videosToNextTier} more video{videosToNextTier !== 1 ? "s" : ""}{" "}
-                    to unlock{" "}
-                    <span className="text-accent font-medium">
-                      {nextTier.discount_percent}% off
-                    </span>{" "}
-                    ({nextTier.name})
-                  </p>
-                )}
-
-                {!nextTier && currentTierIndex >= 0 && (
-                  <p className="text-sm text-green-400">
-                    You&apos;ve reached the highest tier!
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-cream-31">
-                No volume data available yet. Place your first order to start
-                tracking.
-              </p>
             )}
           </div>
         </Card>

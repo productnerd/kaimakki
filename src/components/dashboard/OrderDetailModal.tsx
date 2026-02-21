@@ -38,15 +38,15 @@ const statusVariantMap: Record<string, "default" | "warning" | "accent" | "pink"
   submitted: "default",
   awaiting_assets: "warning",
   in_production: "accent",
-  first_draft: "pink",
+  awaiting_feedback: "pink",
   completed: "success",
 };
 
-const timelineSteps = ["submitted", "in_production", "first_draft", "completed"];
+const timelineSteps = ["submitted", "in_production", "awaiting_feedback", "completed"];
 const timelineLabels: Record<string, string> = {
   submitted: "Submitted",
   in_production: "In Production",
-  first_draft: "First Draft",
+  awaiting_feedback: "Awaiting Feedback",
   completed: "Completed",
 };
 

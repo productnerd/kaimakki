@@ -3,21 +3,43 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Badge from "@/components/ui/Badge";
-import type { ReactNode } from "react";
-
-const tabs = [
-  { label: "Orders", href: "/dashboard" },
-  { label: "Brand", href: "/dashboard/brand" },
-  { label: "Settings", href: "/dashboard/settings" },
-] as const;
+import { useAuth } from "@/providers/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, type ReactNode } from "react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [hasOrders, setHasOrders] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .then(({ count }) => {
+        setHasOrders((count ?? 0) > 0);
+        setChecked(true);
+      });
+  }, [user]);
+
+  const tabs = [
+    { label: "Buy Videos", href: "/dashboard/buy" },
+    ...(hasOrders ? [{ label: "Orders", href: "/dashboard" }] : []),
+    { label: "Brand Assets", href: "/dashboard/brand" },
+    { label: "Rewards", href: "/dashboard/rewards" },
+    { label: "Settings", href: "/dashboard/settings" },
+  ];
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
+
+  if (!checked) return null;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
