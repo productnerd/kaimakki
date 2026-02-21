@@ -40,6 +40,7 @@ type AdminOrder = {
 type BadgeVariant = "default" | "accent" | "lime" | "pink" | "warning" | "success";
 
 const STATUS_BADGE: Record<string, { label: string; variant: BadgeVariant }> = {
+  needs_brief: { label: "Needs Brief", variant: "warning" },
   submitted: { label: "Submitted", variant: "default" },
   awaiting_assets: { label: "Awaiting Assets", variant: "warning" },
   in_production: { label: "In Production", variant: "accent" },
@@ -49,6 +50,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: BadgeVariant }> = {
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
+  { value: "needs_brief", label: "Needs Brief" },
   { value: "submitted", label: "Submitted" },
   { value: "awaiting_assets", label: "Awaiting Assets" },
   { value: "in_production", label: "In Production" },

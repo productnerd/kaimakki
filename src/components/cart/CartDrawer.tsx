@@ -1,12 +1,14 @@
 "use client";
 
 import { useCart } from "@/providers/CartProvider";
+import { getRecipeIcon } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 
 type GroupedItem = {
   key: string;
   recipe_name: string;
+  recipe_slug: string;
   price_cents: number;
   discounted_price_cents: number;
   discount_pct: number;
@@ -56,6 +58,7 @@ export default function CartDrawer() {
       grouped.push({
         key,
         recipe_name: item.recipe_name ?? "",
+        recipe_slug: item.recipe_slug ?? "",
         price_cents: item.price_cents ?? 0,
         discounted_price_cents: item.discounted_price_cents,
         discount_pct: item.discount_pct,
@@ -176,7 +179,7 @@ export default function CartDrawer() {
                           {g.quantity > 1 && (
                             <span className="text-accent mr-1.5">{g.quantity}x</span>
                           )}
-                          {g.recipe_name}
+                          <span className="mr-1">{getRecipeIcon(g.recipe_slug)}</span>{g.recipe_name}
                         </h3>
                         {(g.needs_additional_format || g.needs_stock_footage || g.needs_ai_voice) && (
                           <div className="flex flex-wrap gap-1.5 mt-1.5">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getRecipeIcon } from "@/lib/constants";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -322,7 +323,7 @@ export default function BuyVideosPage() {
                   </div>
 
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
-                    {recipe.name}
+                    <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>{recipe.name}
                   </h3>
                   <p className="text-cream-61 text-xs mb-3 line-clamp-2">
                     {recipe.description}

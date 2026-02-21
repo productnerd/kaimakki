@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         user_id: userId,
         brand_id: brandId,
         recipe_id: item.recipe_id,
-        status: "submitted",
+        status: "needs_brief",
         intake_responses: item.intake_responses,
         notes: item.notes,
         footage_folder_url: item.footage_folder_url,

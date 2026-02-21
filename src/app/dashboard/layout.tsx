@@ -27,8 +27,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user]);
 
   const tabs = [
-    { label: "Buy Videos", href: "/dashboard/buy" },
     ...(hasOrders ? [{ label: "Orders", href: "/dashboard" }] : []),
+    { label: "Buy Videos", href: "/dashboard/buy" },
     { label: "Brand Assets", href: "/dashboard/brand" },
     { label: "Rewards", href: "/dashboard/rewards" },
     { label: "Settings", href: "/dashboard/settings" },

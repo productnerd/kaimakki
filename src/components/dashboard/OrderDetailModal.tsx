@@ -2,6 +2,7 @@
 
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
+import { getRecipeIcon } from "@/lib/constants";
 
 type Order = {
   id: string;
@@ -26,7 +27,7 @@ type Order = {
   estimated_delivery_date: string | null;
   delivered_at: string | null;
   completed_at: string | null;
-  video_recipes: { name: string } | null;
+  video_recipes: { name: string; slug: string } | null;
 };
 
 interface OrderDetailModalProps {
@@ -35,6 +36,7 @@ interface OrderDetailModalProps {
 }
 
 const statusVariantMap: Record<string, "default" | "warning" | "accent" | "pink" | "success"> = {
+  needs_brief: "warning",
   submitted: "default",
   awaiting_assets: "warning",
   in_production: "accent",
@@ -42,8 +44,9 @@ const statusVariantMap: Record<string, "default" | "warning" | "accent" | "pink"
   completed: "success",
 };
 
-const timelineSteps = ["submitted", "in_production", "awaiting_feedback", "completed"];
+const timelineSteps = ["needs_brief", "submitted", "in_production", "awaiting_feedback", "completed"];
 const timelineLabels: Record<string, string> = {
+  needs_brief: "Needs Brief",
   submitted: "Submitted",
   in_production: "In Production",
   awaiting_feedback: "Awaiting Feedback",
@@ -81,7 +84,10 @@ export default function OrderDetailModal({ order, onClose }: OrderDetailModalPro
       <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div>
           {order.video_recipes?.name && (
-            <p className="text-cream-61 text-sm">{order.video_recipes.name}</p>
+            <p className="text-cream-61 text-sm">
+              <span className="mr-1">{getRecipeIcon(order.video_recipes.slug)}</span>
+              {order.video_recipes.name}
+            </p>
           )}
           <p className="text-cream-31 text-xs mt-1">
             Ordered {formatDate(order.created_at)}
