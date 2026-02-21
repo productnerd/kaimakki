@@ -47,45 +47,81 @@ export async function POST() {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
 
-  // 3. Fetch user's brand and brand_volume for discount
-  const { data: brand, error: brandError } = await supabase
-    .from("brands")
-    .select("id, brand_volume(*)")
-    .eq("user_id", user.id)
-    .single();
+  // 3. Fetch user's brand, brand_volume, and discount tiers
+  const [brandResult, tiersResult] = await Promise.all([
+    supabase
+      .from("brands")
+      .select("id, brand_volume(*)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("discount_tiers")
+      .select("min_video_count, discount_percent")
+      .order("min_video_count", { ascending: true }),
+  ]);
 
-  if (brandError || !brand) {
+  if (!brandResult.data) {
     return NextResponse.json(
       { error: "Failed to fetch brand" },
       { status: 500 }
     );
   }
 
+  const brand = brandResult.data;
+  const tiers = tiersResult.data ?? [];
   const brandVolume = Array.isArray(brand.brand_volume)
     ? brand.brand_volume[0]
     : brand.brand_volume;
-  const discountPercent = brandVolume?.current_discount_percent ?? 0;
+  const lifetimeCount = brandVolume?.lifetime_video_count ?? 0;
 
-  // 4. Build line items with pricing
+  // Helper: get discount % for a given video count
+  function getDiscountForCount(count: number): number {
+    let pct = 0;
+    for (const tier of tiers) {
+      if (count >= tier.min_video_count) pct = tier.discount_percent;
+    }
+    return pct;
+  }
+
+  // 4. Build line items and enriched cart — discount changes mid-cart as tiers are crossed
+  const enrichedItems = cartItems.map((item, index) => {
+    const recipe = item.video_recipes;
+    const listPrice = recipe.price_cents;
+    const videoNumber = lifetimeCount + index + 1;
+    const discountPercent = getDiscountForCount(videoNumber);
+    const discountCents = Math.round(listPrice * discountPercent / 100);
+    const surcharge = item.needs_additional_format ? 2000 : 0;
+    const totalCharged = listPrice - discountCents + surcharge;
+
+    return {
+      recipe_id: item.recipe_id,
+      intake_responses: item.intake_responses,
+      notes: item.notes,
+      footage_folder_url: item.footage_folder_url,
+      primary_platform: item.primary_platform,
+      primary_aspect_ratio: item.primary_aspect_ratio,
+      needs_additional_format: item.needs_additional_format,
+      additional_aspect_ratio: item.additional_aspect_ratio,
+      ar_surcharge_cents: surcharge,
+      list_price_cents: listPrice,
+      discount_percent: discountPercent,
+      discount_cents: discountCents,
+      surcharge_cents: surcharge,
+      total_charged_cents: totalCharged,
+      _recipe_name: recipe.name,
+    };
+  });
+
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-    cartItems.map((item) => {
-      const recipe = item.video_recipes;
-      const listPrice = recipe.price_cents;
-      const discount = Math.round(listPrice * discountPercent / 100);
-      const arSurcharge = item.needs_additional_format ? 2000 : 0;
-      const itemTotal = listPrice - discount + arSurcharge;
-
-      return {
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: recipe.name,
-          },
-          unit_amount: itemTotal,
-        },
-        quantity: 1,
-      };
-    });
+    enrichedItems.map((item) => ({
+      price_data: {
+        currency: "eur",
+        product_data: { name: item._recipe_name },
+        unit_amount: item.total_charged_cents,
+      },
+      quantity: 1,
+    }));
 
   // 5. Create Stripe Checkout session
   try {
@@ -97,7 +133,7 @@ export async function POST() {
       metadata: {
         user_id: user.id,
         brand_id: brand.id,
-        cart_items: JSON.stringify(cartItems),
+        cart_items: JSON.stringify(enrichedItems),
       },
     });
 

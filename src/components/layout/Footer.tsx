@@ -13,7 +13,7 @@ export default function Footer() {
               Studio
             </span>
             <p className="text-sm text-cream-31 mt-2 max-w-xs">
-              Professional short-form video content, without the filming.
+              We edit your videos. You post them. Or we give your money to charity. Your call.
             </p>
           </div>
 

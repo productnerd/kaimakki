@@ -108,13 +108,13 @@ export default function DashboardPage() {
           No orders yet
         </h2>
         <p className="text-cream-61 mb-6">
-          Browse our video recipes to get started.
+          Pick a video recipe and place your first order.
         </p>
         <Link
           href="/"
           className="text-accent font-medium hover:underline"
         >
-          Browse recipes
+          Buy a video
         </Link>
       </div>
     );

@@ -37,10 +37,11 @@ export default function PricingPage() {
     <div className="max-w-5xl mx-auto px-6 py-12">
       <div className="text-center mb-12">
         <h1 className="font-display font-black text-3xl md:text-5xl text-cream mb-3">
-          Simple, transparent pricing
+          Pricing that punishes procrastination
         </h1>
         <p className="text-cream-61 text-lg max-w-xl mx-auto">
-          Pick a recipe. The more you order, the more you save.
+          The more you order, the cheaper it gets. Sit on your videos too long?
+          That money goes to charity. We&apos;re your accountability partners — with teeth.
         </p>
       </div>
 
@@ -85,11 +86,11 @@ export default function PricingPage() {
       {/* Volume discount tiers */}
       <div>
         <h2 className="font-display font-bold text-xl text-cream mb-3">
-          Volume Discounts
+          The Loyalty Ladder
         </h2>
         <p className="text-cream-61 text-sm mb-6">
-          The more videos your brand orders over time, the cheaper each one gets.
-          Once a tier is unlocked, the discount applies to all future orders.
+          Order more, pay less. Forever. Once you unlock a tier, it&apos;s yours to keep.
+          Think of it as a reward for actually following through on your content strategy.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -113,12 +114,12 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-8 bg-surface rounded-brand p-6 border border-border">
-          <h3 className="font-display font-bold text-cream mb-3">How it works</h3>
+          <h3 className="font-display font-bold text-cream mb-3">The fine print (it&apos;s actually good)</h3>
           <ul className="space-y-2 text-sm text-cream-61">
-            <li>1. Your discount is based on your brand&apos;s total completed video orders — lifetime.</li>
-            <li>2. Once a tier is unlocked, the discount applies forever.</li>
-            <li>3. At checkout, we calculate your discount based on your current video count + the new order.</li>
-            <li>4. No bulk purchase required — order one at a time and the discounts stack up.</li>
+            <li>1. Your discount is based on your brand&apos;s total video orders. Lifetime. It only goes up.</li>
+            <li>2. Once unlocked, a tier is yours forever. We don&apos;t do takebacks.</li>
+            <li>3. At checkout, we calculate your discount based on your current count + the new order.</li>
+            <li>4. You pay upfront. If you don&apos;t ship footage or post within 30 days, we donate a portion to charity. Consider it motivation.</li>
           </ul>
         </div>
       </div>

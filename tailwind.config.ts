@@ -17,7 +17,7 @@ const config: Config = {
           31: "rgba(255,248,230,0.31)",
           20: "rgba(255,248,230,0.20)",
         },
-        accent: "#ff4824",
+        accent: "#eda4e8",
         lime: "#ddf073",
         brown: "#211305",
         pink: "#eda4e8",

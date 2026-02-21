@@ -4,9 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { CartProvider } from "@/providers/CartProvider";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import CartDrawer from "@/components/cart/CartDrawer";
+import LayoutShell from "@/components/layout/LayoutShell";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -41,10 +39,7 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-cream">
         <AuthProvider>
           <CartProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <CartDrawer />
+            <LayoutShell>{children}</LayoutShell>
           </CartProvider>
         </AuthProvider>
       </body>

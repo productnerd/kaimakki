@@ -24,9 +24,9 @@ const variants: Record<ButtonVariant, string> = {
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-5 py-2.5 text-sm",
-  lg: "px-7 py-3.5 text-base",
+  sm: "px-3 py-1.5 text-xs",
+  md: "px-5 py-2.5 text-xs",
+  lg: "px-7 py-3.5 text-sm",
 };
 
 export default function Button({
@@ -42,7 +42,7 @@ export default function Button({
     <button
       className={`
         inline-flex items-center justify-center gap-2
-        font-body font-medium rounded-brand
+        font-body font-medium rounded-brand uppercase tracking-wide
         transition-colors duration-150
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variants[variant]}

@@ -126,9 +126,6 @@ export default function CartDrawer() {
                 &euro;{(subtotal / 100).toFixed(0)}
               </span>
             </div>
-            <p className="text-cream-20 text-xs">
-              Volume discounts applied at checkout
-            </p>
             <Button className="w-full" size="lg" onClick={handleCheckout} loading={checkoutLoading}>
               Proceed to checkout
             </Button>

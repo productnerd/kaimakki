@@ -5,7 +5,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Textarea from "@/components/ui/Textarea";
+
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -28,8 +28,6 @@ type Brand = {
   id: string;
   name: string;
   website_url: string | null;
-  industry: string | null;
-  description: string | null;
   brand_assets: BrandAsset[];
   brand_volume: BrandVolume[] | BrandVolume | null;
 };
@@ -53,8 +51,6 @@ export default function BrandPage() {
   // Brand info form
   const [name, setName] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -77,7 +73,8 @@ export default function BrandPage() {
         .from("brands")
         .select("*, brand_assets(*), brand_volume(*)")
         .eq("user_id", user!.id)
-        .single(),
+        .limit(1)
+        .maybeSingle(),
       supabase
         .from("discount_tiers")
         .select("*")
@@ -89,8 +86,6 @@ export default function BrandPage() {
       setBrand(b);
       setName(b.name);
       setWebsiteUrl(b.website_url ?? "");
-      setIndustry(b.industry ?? "");
-      setDescription(b.description ?? "");
     }
 
     if (tiersResult.data) {
@@ -119,8 +114,6 @@ export default function BrandPage() {
       .update({
         name: name.trim(),
         website_url: websiteUrl.trim() || null,
-        industry: industry.trim() || null,
-        description: description.trim() || null,
       })
       .eq("id", brand.id);
 
@@ -241,19 +234,6 @@ export default function BrandPage() {
               placeholder="https://yourbrand.com"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
-            />
-            <Input
-              label="Industry"
-              placeholder="e.g. Fashion, Food, Tech"
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-            />
-            <Textarea
-              label="Brand description"
-              placeholder="A short description of your brand..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
             />
 
             {error && <p className="text-sm text-red-400">{error}</p>}

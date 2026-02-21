@@ -28,12 +28,12 @@ export default function CheckoutSuccessPage() {
           </div>
 
           <h1 className="font-display font-bold text-2xl text-cream">
-            Your order has been placed!
+            You&apos;re locked in. No backing out now.
           </h1>
 
           <p className="text-cream-61 text-sm">
-            We&apos;ll start working on your videos right away. Track progress
-            in your dashboard.
+            We&apos;re already on it. Send your footage, post the videos, and keep the
+            streak going — or a charity gets a nice surprise. Clock&apos;s ticking.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-4">

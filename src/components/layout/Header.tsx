@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCart } from "@/providers/CartProvider";
 import Button from "@/components/ui/Button";
 import { useState } from "react";
 
 export default function Header() {
+  const pathname = usePathname();
   const { user, profile, signOut, loading } = useAuth();
   const { itemCount, toggleCart } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isOnboarding = pathname === "/onboarding";
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
@@ -25,64 +28,62 @@ export default function Header() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/"
-            className="text-sm text-cream-78 hover:text-cream transition-colors"
-          >
-            Recipes
-          </Link>
-          <Link
-            href="/pricing"
-            className="text-sm text-cream-78 hover:text-cream transition-colors"
-          >
-            Pricing
-          </Link>
-
-          {/* Cart button */}
-          <button
-            onClick={toggleCart}
-            className="relative text-cream-78 hover:text-cream transition-colors"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
-            </svg>
-            {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </button>
-
-          {!loading && (
-            <>
-              {user ? (
-                <div className="flex items-center gap-4">
-                  <Link href="/dashboard">
-                    <Button variant="secondary" size="sm">
-                      Dashboard
-                    </Button>
-                  </Link>
-                  {profile?.is_admin && (
-                    <Link href="/admin">
-                      <Button variant="ghost" size="sm">
-                        Admin
-                      </Button>
-                    </Link>
-                  )}
-                  <button
-                    onClick={signOut}
-                    className="text-sm text-cream-31 hover:text-cream transition-colors"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              ) : (
-                <Link href="/auth/login">
-                  <Button size="sm">Sign in</Button>
+          {isOnboarding ? (
+            <button
+              onClick={signOut}
+              className="text-sm text-cream-31 hover:text-cream transition-colors"
+            >
+              Sign out
+            </button>
+          ) : !loading && user ? (
+            <div className="flex items-center gap-4">
+              {/* Cart button */}
+              <button
+                onClick={toggleCart}
+                className="relative text-cream-78 hover:text-cream transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
+                </svg>
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
+              {profile?.is_admin && (
+                <Link href="/admin">
+                  <Button variant="ghost" size="sm">
+                    Admin
+                  </Button>
                 </Link>
               )}
+              <button
+                onClick={signOut}
+                className="text-sm text-cream-31 hover:text-cream transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : !loading ? (
+            <>
+              <Link
+                href="/"
+                className="text-sm text-cream-78 hover:text-cream transition-colors"
+              >
+                Recipes
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-sm text-cream-78 hover:text-cream transition-colors"
+              >
+                Pricing
+              </Link>
+              <Link href="/auth/login">
+                <Button size="sm">Sign in</Button>
+              </Link>
             </>
-          )}
+          ) : null}
         </div>
 
         {/* Mobile hamburger */}
@@ -118,25 +119,33 @@ export default function Header() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-surface border-b border-border px-6 py-4 flex flex-col gap-3">
-          <Link href="/" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-            Recipes
-          </Link>
-          <Link href="/pricing" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-            Pricing
-          </Link>
-          {user ? (
+          {isOnboarding ? (
+            <button onClick={signOut} className="text-sm text-cream-31 text-left">
+              Sign out
+            </button>
+          ) : user ? (
             <>
-              <Link href="/dashboard" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
-                Dashboard
-              </Link>
+              {profile?.is_admin && (
+                <Link href="/admin" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
+                  Admin
+                </Link>
+              )}
               <button onClick={signOut} className="text-sm text-cream-31 text-left">
                 Sign out
               </button>
             </>
           ) : (
-            <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-              <Button size="sm" className="w-full">Sign in</Button>
-            </Link>
+            <>
+              <Link href="/" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
+                Recipes
+              </Link>
+              <Link href="/pricing" className="text-sm text-cream-78" onClick={() => setMobileOpen(false)}>
+                Pricing
+              </Link>
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                <Button size="sm" className="w-full">Sign in</Button>
+              </Link>
+            </>
           )}
         </div>
       )}
