@@ -71,12 +71,13 @@ const TIERS: TierData[] = [
   },
 ];
 
-// Collect all perks from tiers before the given index
+// Collect non-discount perks from tiers before the given index
 function getInheritedPerks(tierIndex: number): Perk[] {
   const inherited: Perk[] = [];
   for (let i = 0; i < tierIndex; i++) {
     for (const perk of TIERS[i].perks) {
-      // Avoid duplicate discount labels
+      // Skip discount perks — discounts increase, they don't stack
+      if (perk.label.includes("discount")) continue;
       if (!inherited.some((p) => p.label === perk.label)) {
         inherited.push(perk);
       }
@@ -339,37 +340,35 @@ function SavingsGraph({
         </div>
       </div>
 
-      <div className="flex items-end gap-3 h-36">
+      <div className="flex items-end gap-3" style={{ height: 144 }}>
         {projections.map((proj, i) => {
           const isCurrent = i === currentTierIndex;
-          const heightPct = proj.savingsFor12 > 0
-            ? Math.max(8, (proj.savingsFor12 / maxSavings) * 100)
-            : 8;
+          const barHeight = proj.savingsFor12 > 0
+            ? Math.max(12, Math.round((proj.savingsFor12 / maxSavings) * 100))
+            : 12;
           const savingsEuros = (proj.savingsFor12 / 100).toFixed(0);
 
           return (
-            <div key={proj.name} className="flex-1 flex flex-col items-center gap-1.5">
+            <div key={proj.name} className="flex-1 flex flex-col items-center justify-end h-full">
               {/* Value label */}
-              <span className={`text-xs font-medium ${isCurrent ? "text-accent" : "text-cream-31"}`}>
+              <span className={`text-xs font-medium mb-1.5 ${isCurrent ? "text-accent" : "text-cream-31"}`}>
                 {proj.pct > 0 ? `€${savingsEuros}` : "€0"}
               </span>
               {/* Bar */}
-              <div className="w-full flex justify-center">
-                <div
-                  className={`
-                    w-full max-w-12 rounded-t-lg transition-all duration-700 ease-out
-                    ${isCurrent
-                      ? "bg-gradient-to-t from-accent/80 to-accent"
-                      : i < currentTierIndex
-                        ? "bg-lime/30"
-                        : "bg-border"
-                    }
-                  `}
-                  style={{ height: `${heightPct}%` }}
-                />
-              </div>
+              <div
+                className={`
+                  w-full max-w-12 rounded-t-lg transition-all duration-700 ease-out
+                  ${isCurrent
+                    ? "bg-gradient-to-t from-accent/80 to-accent"
+                    : i < currentTierIndex
+                      ? "bg-lime/30"
+                      : "bg-border"
+                  }
+                `}
+                style={{ height: barHeight }}
+              />
               {/* Tier label */}
-              <span className={`text-[10px] font-medium ${isCurrent ? "text-cream" : "text-cream-31"}`}>
+              <span className={`text-[10px] font-medium mt-1.5 ${isCurrent ? "text-cream" : "text-cream-31"}`}>
                 {proj.name}
               </span>
             </div>
