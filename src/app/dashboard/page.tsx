@@ -210,11 +210,18 @@ export default function DashboardPage() {
                           <span className="text-cream-31 text-xs">
                             {formatDate(order.created_at)}
                           </span>
-                          {daysLeft !== null && (
-                            <span className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-400" : "text-cream-61"}`}>
-                              {daysLeft}d left
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {daysLeft !== null && (
+                              <span className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-400" : "text-cream-61"}`}>
+                                {daysLeft}d left
+                              </span>
+                            )}
+                            {isUserAction && (
+                              <span className="text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
+                                Action needed
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
