@@ -175,57 +175,70 @@ export default function DashboardPage() {
                     No orders
                   </div>
                 ) : (
-                  columnOrders.map((order) => {
-                    const isInProduction = order.status === "in_production" || order.status === "awaiting_assets";
-                    const isUserAction = (USER_ACTION_STATUSES as readonly string[]).includes(order.status);
-                    const daysLeft = isUserAction ? getDaysLeft(order.updated_at) : null;
+                  <>
+                    {columnOrders.map((order) => {
+                      const isInProduction = order.status === "in_production" || order.status === "awaiting_assets";
+                      const isUserAction = (USER_ACTION_STATUSES as readonly string[]).includes(order.status);
+                      const daysLeft = isUserAction ? getDaysLeft(order.updated_at) : null;
 
-                    return (
-                      <button
-                        key={order.id}
-                        type="button"
-                        onClick={() => handleCardClick(order)}
-                        className={`
-                          bg-surface border rounded-brand p-4 text-left
-                          hover:border-accent/50 transition-colors duration-200 cursor-pointer w-full
-                          ${isInProduction ? "border-accent/30 animate-pulse-glow" : "border-border"}
-                        `}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {isInProduction && (
-                            <span className="relative flex h-2 w-2 flex-shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                            </span>
-                          )}
-                          <span className="mr-0.5">{getRecipeIcon(order.video_recipes?.slug)}</span>
-                          <p className="font-display font-bold text-sm text-cream truncate">
-                            {order.video_recipes?.name ?? "Custom Order"}
-                          </p>
-                        </div>
-                        <p className="text-cream-31 text-xs mb-2">
-                          {order.order_number}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-cream-31 text-xs">
-                            {formatDate(order.created_at)}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {daysLeft !== null && (
-                              <span className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-400" : "text-cream-61"}`}>
-                                {daysLeft}d left
+                      return (
+                        <button
+                          key={order.id}
+                          type="button"
+                          onClick={() => handleCardClick(order)}
+                          className={`
+                            bg-surface border rounded-brand p-4 text-left
+                            hover:border-accent/50 transition-colors duration-200 cursor-pointer w-full
+                            ${isInProduction ? "border-accent/30 animate-pulse-glow" : "border-border"}
+                          `}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {isInProduction && (
+                              <span className="relative flex h-2 w-2 flex-shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
                               </span>
                             )}
-                            {isUserAction && (
-                              <span className="text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
-                                Action needed
-                              </span>
-                            )}
+                            <span className="mr-0.5">{getRecipeIcon(order.video_recipes?.slug)}</span>
+                            <p className="font-display font-bold text-sm text-cream truncate">
+                              {order.video_recipes?.name ?? "Custom Order"}
+                            </p>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })
+                          <p className="text-cream-31 text-xs mb-2">
+                            {order.order_number}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-cream-31 text-xs">
+                              {formatDate(order.created_at)}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {daysLeft !== null && (
+                                <span className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-400" : "text-cream-61"}`}>
+                                  {daysLeft}d left
+                                </span>
+                              )}
+                              {isUserAction && (
+                                <span className="text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
+                                  Action needed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Buy more videos card — only in Needs Brief column */}
+                {col.title === "Needs Brief" && (
+                  <Link
+                    href="/dashboard/buy"
+                    className="border border-dashed border-accent/30 rounded-brand p-4 flex flex-col items-center justify-center text-center hover:border-accent/60 transition-colors duration-200 gap-1.5"
+                  >
+                    <span className="text-accent text-2xl leading-none">+</span>
+                    <span className="text-cream text-xs font-medium">Buy more videos</span>
+                  </Link>
                 )}
               </div>
             </div>
