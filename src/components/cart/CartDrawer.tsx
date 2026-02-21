@@ -2,12 +2,11 @@
 
 import { useCart } from "@/providers/CartProvider";
 import Button from "@/components/ui/Button";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, itemCount } = useCart();
-  const router = useRouter();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,9 +21,18 @@ export default function CartDrawer() {
 
   const subtotal = items.reduce((sum, item) => sum + (item.price_cents || 0), 0);
 
-  function handleCheckout() {
-    closeCart();
-    router.push("/dashboard/orders/new");
+  async function handleCheckout() {
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        closeCart();
+        window.location.href = data.url;
+      }
+    } catch {
+      setCheckoutLoading(false);
+    }
   }
 
   return (
@@ -121,7 +129,7 @@ export default function CartDrawer() {
             <p className="text-cream-20 text-xs">
               Volume discounts applied at checkout
             </p>
-            <Button className="w-full" size="lg" onClick={handleCheckout}>
+            <Button className="w-full" size="lg" onClick={handleCheckout} loading={checkoutLoading}>
               Proceed to checkout
             </Button>
           </div>
