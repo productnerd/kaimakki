@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCart } from "@/providers/CartProvider";
@@ -19,10 +19,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
       <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <span className="font-display font-bold text-xl tracking-tight">
-            <span className="text-cream">KAIMAKKI</span>
-            <span className="text-accent">.</span>
-          </span>
+          <Image
+            src="https://framerusercontent.com/images/sc7b0aW1H31j9WQJRmHIzVK0D5w.png"
+            alt="Kaimakki Studio"
+            width={130}
+            height={47}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}

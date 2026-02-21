@@ -114,13 +114,10 @@ export default function RewardsTracker({
   const nextTier = currentTierIndex < TIERS.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const videosToNext = nextTier ? nextTier.minVideos - lifetimeVideoCount : 0;
 
-  // Progress bar: percentage between current tier and next tier
+  // Progress bar: absolute progress toward next tier
   const progressPct = (() => {
     if (!nextTier) return 100;
-    const current = TIERS[currentTierIndex];
-    const range = nextTier.minVideos - current.minVideos;
-    const progress = lifetimeVideoCount - current.minVideos;
-    return Math.min(100, Math.max(0, (progress / range) * 100));
+    return Math.min(100, Math.max(0, (lifetimeVideoCount / nextTier.minVideos) * 100));
   })();
 
   // For savings projection graph
@@ -148,32 +145,6 @@ export default function RewardsTracker({
         </>
       )}
 
-      {/* Progress to next tier */}
-      {nextTier && mode === "dashboard" && (
-        <div className="bg-surface border border-border rounded-brand p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-cream text-sm font-medium">
-              {TIERS[currentTierIndex].name}
-            </span>
-            <span className="text-cream-31 text-xs">
-              {videosToNext} more video{videosToNext !== 1 ? "s" : ""} to {nextTier.name}
-            </span>
-            <span className="text-cream text-sm font-medium">
-              {nextTier.name}
-            </span>
-          </div>
-          <div className="h-2 bg-background rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-1000 ease-out"
-              style={{
-                width: `${progressPct}%`,
-                background: "linear-gradient(90deg, #eda4e8, #ddf073)",
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Tier roadmap */}
       <div className="relative">
         {/* Vertical connector line */}
@@ -184,6 +155,7 @@ export default function RewardsTracker({
             const isUnlocked = i <= currentTierIndex && mode === "dashboard";
             const isCurrent = i === currentTierIndex && mode === "dashboard";
             const isLocked = i > currentTierIndex || mode === "pricing";
+            const isNextToUnlock = i === currentTierIndex + 1 && mode === "dashboard";
             const inheritedPerks = getInheritedPerks(i);
 
             return (
@@ -248,6 +220,29 @@ export default function RewardsTracker({
                       </div>
                     </div>
                   </div>
+
+                  {/* Progress bar inside next-to-unlock tier */}
+                  {isNextToUnlock && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-cream-31 text-xs">
+                          {videosToNext} more video{videosToNext !== 1 ? "s" : ""} to unlock
+                        </span>
+                        <span className="text-cream-31 text-xs font-medium">
+                          {lifetimeVideoCount}/{tier.minVideos}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-background rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${progressPct}%`,
+                            background: "linear-gradient(90deg, #eda4e8, #ddf073)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* This tier's own perks */}
                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isLocked ? "opacity-50" : ""}`}>
