@@ -4,6 +4,7 @@ import { useCart } from "@/providers/CartProvider";
 import { getRecipeIcon } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type GroupedItem = {
   key: string;
@@ -92,7 +93,18 @@ export default function CartDrawer() {
   async function handleCheckout() {
     setCheckoutLoading(true);
     try {
-      const res = await fetch("/api/checkout", { method: "POST" });
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/checkout`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       const data = await res.json();
       if (data.url) {
         closeCart();

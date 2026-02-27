@@ -1,380 +1,467 @@
 "use client";
 
-type Perk = {
-  label: string;
-  description: string;
-  icon: string;
-};
-
-type TierData = {
-  slug: string;
-  name: string;
-  minVideos: number;
-  discountPct: number;
-  perks: Perk[];
-  color: string;
-  glowClass: string;
-};
-
-const TIERS: TierData[] = [
-  {
-    slug: "rookie",
-    name: "Rookie",
-    minVideos: 1,
-    discountPct: 0,
-    perks: [
-      { label: "Dashboard access", description: "Track orders and manage briefs", icon: "📋" },
-      { label: "Standard delivery", description: "4 business day turnaround", icon: "📦" },
-    ],
-    color: "border-cream-31",
-    glowClass: "",
-  },
-  {
-    slug: "regular",
-    name: "Regular",
-    minVideos: 3,
-    discountPct: 10,
-    perks: [
-      { label: "10% lifetime discount", description: "On every video, forever", icon: "💰" },
-      { label: "WhatsApp group access", description: "Direct line to the team", icon: "💬" },
-    ],
-    color: "border-accent/50",
-    glowClass: "animate-pulse-glow",
-  },
-  {
-    slug: "hustler",
-    name: "Hustler",
-    minVideos: 8,
-    discountPct: 15,
-    perks: [
-      { label: "15% lifetime discount", description: "Bigger savings, same quality", icon: "💰" },
-      { label: "Priority queue", description: "Your videos get edited first", icon: "⚡" },
-      { label: "Extra revision round", description: "One free revision per video", icon: "🔄" },
-      { label: "Sticker pack", description: "Physical mail, laptop-worthy", icon: "🏷️" },
-    ],
-    color: "border-lime/50",
-    glowClass: "animate-pulse-glow-lime",
-  },
-  {
-    slug: "legend",
-    name: "Legend",
-    minVideos: 12,
-    discountPct: 20,
-    perks: [
-      { label: "20% lifetime discount", description: "Maximum savings unlocked", icon: "💰" },
-      { label: "Free strategy session", description: "30-min content strategy call", icon: "🧠" },
-      { label: "Branded mug", description: "Physical proof you ship content", icon: "☕" },
-      { label: "Monthly analytics roast", description: "Brutally honest performance review", icon: "📊" },
-    ],
-    color: "border-accent",
-    glowClass: "animate-pulse-glow",
-  },
-];
-
-// Collect non-discount perks from tiers before the given index
-function getInheritedPerks(tierIndex: number): Perk[] {
-  const inherited: Perk[] = [];
-  for (let i = 0; i < tierIndex; i++) {
-    for (const perk of TIERS[i].perks) {
-      // Skip discount perks — discounts increase, they don't stack
-      if (perk.label.includes("discount")) continue;
-      if (!inherited.some((p) => p.label === perk.label)) {
-        inherited.push(perk);
-      }
-    }
-  }
-  return inherited;
-}
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getUnlockState, canRequestTierUpgrade, type Milestone } from "@/lib/unlocks";
+import { getRecipeIcon } from "@/lib/constants";
 
 interface RewardsTrackerProps {
   lifetimeVideoCount?: number;
+  approvedVideoCount?: number;
   currentDiscountPercent?: number;
   lifetimeSpentCents?: number;
-  lifetimeSavedCents?: number;
   mode?: "dashboard" | "pricing";
+  brandId?: string;
+  pendingUpgradeRequest?: boolean;
 }
 
 export default function RewardsTracker({
   lifetimeVideoCount = 0,
+  approvedVideoCount = 0,
   currentDiscountPercent = 0,
   lifetimeSpentCents = 0,
-  lifetimeSavedCents = 0,
   mode = "dashboard",
+  brandId,
+  pendingUpgradeRequest = false,
 }: RewardsTrackerProps) {
-  const currentTierIndex = (() => {
-    let idx = 0;
-    for (let i = TIERS.length - 1; i >= 0; i--) {
-      if (lifetimeVideoCount >= TIERS[i].minVideos) {
-        idx = i;
-        break;
-      }
-    }
-    return idx;
-  })();
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [avgPriceCents, setAvgPriceCents] = useState<number>(0);
 
-  const nextTier = currentTierIndex < TIERS.length - 1 ? TIERS[currentTierIndex + 1] : null;
-  const videosToNext = nextTier ? nextTier.minVideos - lifetimeVideoCount : 0;
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("unlock_milestones")
+      .select("*")
+      .order("min_videos")
+      .then(({ data }) => setMilestones((data ?? []) as Milestone[]));
+    supabase
+      .from("video_recipes")
+      .select("price_cents")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const avg = data.reduce((sum, r) => sum + r.price_cents, 0) / data.length;
+          setAvgPriceCents(Math.round(avg));
+        }
+      });
+  }, []);
 
-  // Progress bar: absolute progress toward next tier
-  const progressPct = (() => {
-    if (!nextTier) return 100;
-    return Math.min(100, Math.max(0, (lifetimeVideoCount / nextTier.minVideos) * 100));
-  })();
+  if (milestones.length === 0) return null;
 
-  // For savings projection graph
-  const avgPriceCents = lifetimeVideoCount > 0
-    ? Math.round(lifetimeSpentCents / lifetimeVideoCount)
-    : 12500; // default €125 average
+  const unlock = getUnlockState(approvedVideoCount, milestones);
+  const upgradeCheck = canRequestTierUpgrade(lifetimeVideoCount, approvedVideoCount, milestones);
+
+  const currentMilestoneIndex = milestones.findIndex(
+    (ms) => ms.id === unlock.currentMilestone?.id
+  );
+  const nextMilestone = unlock.nextMilestone;
+  const videosToNext = nextMilestone
+    ? nextMilestone.min_videos - lifetimeVideoCount
+    : 0;
 
   return (
     <div className="space-y-8">
       {/* Stats bar — dashboard only */}
       {mode === "dashboard" && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Videos ordered" value={String(lifetimeVideoCount)} />
-            <StatCard label="Current discount" value={`${currentDiscountPercent}%`} accent />
-            <StatCard label="Total spent" value={`€${(lifetimeSpentCents / 100).toFixed(0)}`} />
-            <StatCard label="Total saved" value={`€${(lifetimeSavedCents / 100).toFixed(0)}`} lime />
-          </div>
-
-          {/* Savings projection graph */}
-          <SavingsGraph
-            avgPriceCents={avgPriceCents}
-            currentTierIndex={currentTierIndex}
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard
+            label="Videos ordered"
+            value={String(lifetimeVideoCount)}
           />
-        </>
+          <StatCard
+            label="Current discount"
+            value={`${currentDiscountPercent}%`}
+            accent
+          />
+          <StatCard
+            label="Total spent"
+            value={`€${(lifetimeSpentCents / 100).toFixed(0)}`}
+          />
+        </div>
       )}
 
-      {/* Tier roadmap */}
-      <div className="relative">
-        {/* Vertical connector line */}
-        <div className="absolute left-6 top-8 bottom-8 w-px bg-border hidden md:block" />
+      {/* Milestone roadmap */}
+      <div className="space-y-6">
+        {milestones.map((ms, i) => {
+          const isDashboard = mode === "dashboard";
+          const isUnlocked = isDashboard && i <= currentMilestoneIndex;
+          const isCurrent = isDashboard && i === currentMilestoneIndex;
+          const isLocked = !isUnlocked;
+          const isNext = isDashboard && nextMilestone?.id === ms.id;
 
-        <div className="space-y-6">
-          {TIERS.map((tier, i) => {
-            const isUnlocked = i <= currentTierIndex && mode === "dashboard";
-            const isCurrent = i === currentTierIndex && mode === "dashboard";
-            const isLocked = i > currentTierIndex || mode === "pricing";
-            const isNextToUnlock = i === currentTierIndex + 1 && mode === "dashboard";
-            const inheritedPerks = getInheritedPerks(i);
+          // Determine border color based on discount
+          const borderColor = isCurrent
+            ? ms.discount_percent >= 20
+              ? "border-accent"
+              : ms.discount_percent >= 15
+                ? "border-lime/50"
+                : ms.discount_percent >= 10
+                  ? "border-accent/50"
+                  : "border-cream-31"
+            : "border-border";
 
-            return (
-              <div key={tier.slug} className="relative">
-                <div
-                  className={`
-                    rounded-brand border p-5 transition-all duration-300
-                    ${isCurrent
-                      ? `bg-surface ${tier.color} ${tier.glowClass}`
-                      : isUnlocked
-                        ? "bg-surface/80 border-border"
-                        : "bg-background/50 border-border/50"
-                    }
-                  `}
-                >
-                  {/* Tier header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      {/* Node dot */}
-                      <div
-                        className={`
-                          relative w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0
-                          ${isCurrent
-                            ? "bg-accent/20 text-accent animate-breathe"
-                            : isUnlocked
-                              ? "bg-lime/20 text-lime"
-                              : "bg-surface text-cream-31 border border-border"
-                          }
-                        `}
-                      >
-                        {isUnlocked && !isCurrent ? (
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                            <path d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <span className="text-sm">{tier.discountPct}%</span>
-                        )}
-                        {isCurrent && (
-                          <div className="absolute inset-0 rounded-full border-2 border-accent/40 animate-ping" style={{ animationDuration: "2s" }} />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className={`font-display font-bold text-lg ${isCurrent ? "text-cream" : isUnlocked ? "text-cream" : "text-cream-61"}`}>
-                            {tier.name}
-                          </h3>
-                          {isCurrent && (
-                            <span className="text-[10px] uppercase tracking-wider bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">
-                              Current
-                            </span>
-                          )}
-                          {isUnlocked && !isCurrent && (
-                            <span className="text-[10px] uppercase tracking-wider bg-lime/20 text-lime px-2 py-0.5 rounded-full font-medium">
-                              Unlocked
-                            </span>
-                          )}
-                        </div>
-                        <p className={`text-xs ${isLocked ? "text-cream-31" : "text-cream-61"}`}>
-                          {tier.minVideos === 1 ? "1-2 videos" : `${tier.minVideos}+ videos`}
-                          {tier.discountPct > 0 && ` · ${tier.discountPct}% off everything`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+          const glowClass = isCurrent
+            ? ms.discount_percent >= 15
+              ? "animate-pulse-glow-lime"
+              : ms.discount_percent >= 10
+                ? "animate-pulse-glow"
+                : ""
+            : "";
 
-                  {/* Progress bar inside next-to-unlock tier */}
-                  {isNextToUnlock && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-cream-31 text-xs">
-                          {videosToNext} more video{videosToNext !== 1 ? "s" : ""} to unlock
-                        </span>
-                        <span className="text-cream-31 text-xs font-medium">
-                          {lifetimeVideoCount}/{tier.minVideos}
-                        </span>
-                      </div>
-                      <div className="h-2 bg-background rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-1000 ease-out"
-                          style={{
-                            width: `${progressPct}%`,
-                            background: "linear-gradient(90deg, #eda4e8, #ddf073)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
+          // Categorize all unlocks for this milestone
+          type CatItem = { icon: string; label: string };
 
-                  {/* This tier's own perks */}
-                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isLocked ? "opacity-50" : ""}`}>
-                    {tier.perks.map((perk) => (
-                      <div
-                        key={perk.label}
-                        className={`
-                          flex items-start gap-2.5 p-3 rounded-xl
-                          ${isCurrent ? "bg-background/60" : isUnlocked ? "bg-background/40" : "bg-background/20"}
-                        `}
-                      >
-                        <span className="text-base mt-0.5">{perk.icon}</span>
-                        <div>
-                          <p className={`text-sm font-medium ${isLocked ? "text-cream-31" : "text-cream"}`}>
-                            {perk.label}
-                          </p>
-                          <p className={`text-xs ${isLocked ? "text-cream-20" : "text-cream-31"}`}>
-                            {perk.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          const recipes: CatItem[] = ms.unlocked_recipe_slugs.map((slug) => ({
+            icon: getRecipeIcon(slug),
+            label: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          }));
 
-                  {/* Inherited perks from previous tiers (dimmed) */}
-                  {inheritedPerks.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2 opacity-30">
-                      {inheritedPerks.map((perk) => (
-                        <div
-                          key={`inherited-${perk.label}`}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+          // Add recipe-category perks (e.g. "Early access to new recipes")
+          for (const perk of ms.perks) {
+            if (perk.category === "recipes") {
+              recipes.push({ icon: perk.icon, label: perk.label });
+            }
+          }
+
+          const features: CatItem[] = [];
+          for (const addon of ms.unlocked_addons) {
+            features.push({
+              icon: addon === "stock_footage" ? "🎞️" : addon === "ai_voice" ? "🤖" : addon === "expedited" ? "⚡" : addon === "brief_templates" ? "📝" : addon === "professional_color_grading" ? "🎨" : addon === "charity_choice" ? "💝" : "🎁",
+              label: addon.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+            });
+          }
+          if (ms.landscape_unlocked) {
+            const first = milestones.find((m) => m.landscape_unlocked);
+            if (first?.id === ms.id) features.push({ icon: "🖥️", label: "16:9 landscape" });
+          }
+          if (ms.dual_format_free) {
+            const first = milestones.find((m) => m.dual_format_free);
+            if (first?.id === ms.id) features.push({ icon: "🎬", label: "Dual format free" });
+          }
+          if (ms.custom_requests_unlocked) {
+            const first = milestones.find((m) => m.custom_requests_unlocked);
+            if (first?.id === ms.id) features.push({ icon: "✏️", label: "Custom requests" });
+          }
+          if (ms.max_duration_seconds > (i > 0 ? milestones[i - 1].max_duration_seconds : 0)) {
+            features.push({ icon: "⏱️", label: `Up to ${ms.max_duration_seconds}s` });
+          }
+
+          // Support perks only
+          const supportPerks: CatItem[] = [];
+          for (const perk of ms.perks) {
+            if (perk.label.includes("discount")) continue;
+            if (perk.category === "support") supportPerks.push(perk);
+          }
+
+          return (
+            <div key={ms.id}>
+              <div
+                className={`
+                  rounded-brand border p-5 transition-all duration-300
+                  ${isCurrent
+                    ? `bg-surface ${borderColor} ${glowClass}`
+                    : isUnlocked
+                      ? "bg-surface/80 border-border"
+                      : "bg-background/50 border-border/50"
+                  }
+                `}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {/* Node dot */}
+                    <div
+                      className={`
+                        relative w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0
+                        ${isCurrent
+                          ? "bg-accent/20 text-accent animate-breathe"
+                          : isUnlocked
+                            ? "bg-lime/20 text-lime"
+                            : "bg-surface text-cream-31 border border-border"
+                        }
+                      `}
+                    >
+                      {isUnlocked && !isCurrent ? (
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={3}
                         >
-                          <span className="text-xs">{perk.icon}</span>
-                          <p className="text-xs text-cream-31">{perk.label}</p>
-                        </div>
-                      ))}
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span className="text-sm">{ms.discount_percent}%</span>
+                      )}
+                      {isCurrent && (
+                        <div
+                          className="absolute inset-0 rounded-full border-2 border-accent/40 animate-ping"
+                          style={{ animationDuration: "2s" }}
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3
+                          className={`font-display font-bold text-lg ${
+                            isCurrent || isUnlocked
+                              ? "text-cream"
+                              : "text-cream-61"
+                          }`}
+                        >
+                          {ms.tier_name}
+                        </h3>
+                        {isCurrent && (
+                          <span className="text-[10px] uppercase tracking-wider bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">
+                            Current
+                          </span>
+                        )}
+                        {isUnlocked && !isCurrent && (
+                          <span className="text-[10px] uppercase tracking-wider bg-lime/20 text-lime px-2 py-0.5 rounded-full font-medium">
+                            Unlocked
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-xs ${
+                          isLocked ? "text-cream-31" : "text-cream-61"
+                        }`}
+                      >
+                        {ms.min_videos} video{ms.min_videos !== 1 ? "s" : ""} posted
+                        {ms.discount_percent > 0 &&
+                          ` · ${ms.discount_percent}% off everything`}
+                      </p>
+                      {ms.discount_percent > 0 && avgPriceCents > 0 && (
+                        <p className="text-xs mt-0.5">
+                          <span className="text-cream-31">avg. </span>
+                          <span className="text-cream-31 line-through">€{(avgPriceCents / 100).toFixed(0)}</span>
+                          <span className={`ml-1 font-medium ${isCurrent ? "text-accent" : isUnlocked ? "text-lime" : "text-cream-61"}`}>
+                            €{Math.round(avgPriceCents * (1 - ms.discount_percent / 100) / 100)}
+                          </span>
+                          <span className="text-cream-31"> /video</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar — next tier to unlock */}
+                {isNext && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-cream-31 text-xs">
+                        {videosToNext > 0
+                          ? `${videosToNext} more video${videosToNext !== 1 ? "s" : ""} to complete`
+                          : "All videos completed"}
+                      </span>
+                      <span className="text-cream-31 text-xs font-medium">
+                        {lifetimeVideoCount}/{ms.min_videos}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-background rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-1000 ease-out"
+                        style={{
+                          width: `${Math.min(100, (lifetimeVideoCount / ms.min_videos) * 100)}%`,
+                          background:
+                            "linear-gradient(90deg, #eda4e8, #ddf073)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tier upgrade form — show when eligible and no pending request */}
+                {isNext && upgradeCheck.eligible && !pendingUpgradeRequest && brandId && (
+                  <TierUpgradeForm brandId={brandId} milestoneId={ms.id} />
+                )}
+                {isNext && pendingUpgradeRequest && (
+                  <div className="mb-4 p-3 rounded-brand bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-amber-400 text-xs font-medium">
+                      Proof submitted — waiting for review
+                    </p>
+                  </div>
+                )}
+
+                {/* Categorized unlocks */}
+                <div className={`space-y-3 ${isLocked ? "opacity-50" : ""}`}>
+                  {/* Recipes — accent mini cards */}
+                  {recipes.length > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest font-medium text-accent/70 mb-1.5">Recipes</p>
+                      <div className="flex flex-wrap gap-2">
+                        {recipes.map((r) => (
+                          <div
+                            key={r.label}
+                            className={`
+                              flex items-center gap-2 px-3 py-2 rounded-xl border
+                              ${isCurrent
+                                ? "bg-accent/10 border-accent/20 text-accent"
+                                : isUnlocked
+                                  ? "bg-accent/10 border-accent/20 text-accent/80"
+                                  : "bg-background/50 border-border text-cream-31"
+                              }
+                            `}
+                          >
+                            <span className="text-base">{r.icon}</span>
+                            <span className="text-sm font-medium">{r.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Lock overlay hint */}
-                  {isLocked && mode === "pricing" && (
-                    <div className="mt-3 text-center">
-                      <span className="text-xs text-cream-31">
-                        Order {tier.minVideos}+ videos to unlock
-                      </span>
+                  {/* Features — lime pills */}
+                  {features.length > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest font-medium text-lime/70 mb-1.5">Features</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {features.map((f) => (
+                          <span
+                            key={f.label}
+                            className={`
+                              inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full
+                              ${isCurrent
+                                ? "bg-lime/10 text-lime"
+                                : isUnlocked
+                                  ? "bg-lime/10 text-lime/80"
+                                  : "bg-background text-cream-31"
+                              }
+                            `}
+                          >
+                            <span>{f.icon}</span>
+                            {f.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Support — left-bordered list */}
+                  {supportPerks.length > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest font-medium text-cream-31 mb-1.5">Support</p>
+                      <div className={`space-y-1 border-l-2 pl-3 ${
+                        isCurrent ? "border-cream-31" : "border-cream-20"
+                      }`}>
+                        {supportPerks.map((s) => (
+                          <div key={s.label} className="flex items-center gap-2">
+                            <span className="text-sm">{s.icon}</span>
+                            <span className={`text-sm ${isCurrent || isUnlocked ? "text-cream-78" : "text-cream-31"}`}>
+                              {s.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, accent, lime }: { label: string; value: string; accent?: boolean; lime?: boolean }) {
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <div className="p-4 bg-background rounded-brand border border-border">
       <p className="text-xs text-cream-31 mb-1">{label}</p>
-      <p className={`text-3xl font-black font-display ${accent ? "text-accent" : lime ? "text-lime" : "text-cream"}`}>
+      <p
+        className={`text-3xl font-black font-display ${
+          accent ? "text-accent" : "text-cream"
+        }`}
+      >
         {value}
       </p>
     </div>
   );
 }
 
-function SavingsGraph({
-  avgPriceCents,
-  currentTierIndex,
+function TierUpgradeForm({
+  brandId,
+  milestoneId,
 }: {
-  avgPriceCents: number;
-  currentTierIndex: number;
+  brandId: string;
+  milestoneId: string;
 }) {
-  // Project savings for 12 videos at each tier's discount
-  const projections = TIERS.map((tier) => {
-    const savingsPerVideo = Math.round(avgPriceCents * tier.discountPct / 100);
-    return {
-      name: tier.name,
-      pct: tier.discountPct,
-      savingsFor12: savingsPerVideo * 12,
-    };
-  });
+  const [url, setUrl] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const maxSavings = Math.max(...projections.map((p) => p.savingsFor12), 1);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setSubmitting(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError("Not signed in"); setSubmitting(false); return; }
+
+    const { error: insertError } = await supabase
+      .from("tier_upgrade_requests")
+      .insert({
+        brand_id: brandId,
+        user_id: user.id,
+        video_link: url.trim(),
+        target_milestone_id: milestoneId,
+      });
+
+    if (insertError) {
+      setError("Failed to submit. Try again.");
+    } else {
+      setSubmitted(true);
+    }
+    setSubmitting(false);
+  }
+
+  if (submitted) {
+    return (
+      <div className="mb-4 p-3 rounded-brand bg-amber-500/10 border border-amber-500/20">
+        <p className="text-amber-400 text-xs font-medium">
+          Proof submitted — waiting for review
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-surface border border-border rounded-brand p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-cream text-sm font-semibold">Projected savings</h3>
-          <p className="text-cream-31 text-xs">If you order 12 videos at each tier</p>
-        </div>
+    <form onSubmit={handleSubmit} className="mb-4 p-4 rounded-brand bg-background border border-accent/20">
+      <p className="text-cream text-xs font-medium mb-2">
+        Ready to unlock the next tier? Paste a link to a video you&apos;ve posted.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://instagram.com/p/..."
+          required
+          className="flex-1 px-3 py-2 rounded-brand bg-surface border border-border text-cream text-sm placeholder:text-cream-31 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !url.trim()}
+          className="px-4 py-2 rounded-brand bg-accent text-background text-sm font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+        >
+          {submitting ? "..." : "Submit"}
+        </button>
       </div>
-
-      <div className="flex items-end gap-3" style={{ height: 144 }}>
-        {projections.map((proj, i) => {
-          const isCurrent = i === currentTierIndex;
-          const barHeight = proj.savingsFor12 > 0
-            ? Math.max(12, Math.round((proj.savingsFor12 / maxSavings) * 100))
-            : 12;
-          const savingsEuros = (proj.savingsFor12 / 100).toFixed(0);
-
-          return (
-            <div key={proj.name} className="flex-1 flex flex-col items-center justify-end h-full">
-              {/* Value label */}
-              <span className={`text-xs font-medium mb-1.5 ${isCurrent ? "text-accent" : "text-cream-31"}`}>
-                {proj.pct > 0 ? `€${savingsEuros}` : "€0"}
-              </span>
-              {/* Bar */}
-              <div
-                className={`
-                  w-full max-w-12 rounded-t-lg transition-all duration-700 ease-out
-                  ${isCurrent
-                    ? "bg-gradient-to-t from-accent/80 to-accent"
-                    : i < currentTierIndex
-                      ? "bg-lime/30"
-                      : "bg-border"
-                  }
-                `}
-                style={{ height: barHeight }}
-              />
-              {/* Tier label */}
-              <span className={`text-[10px] font-medium mt-1.5 ${isCurrent ? "text-cream" : "text-cream-31"}`}>
-                {proj.name}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+      {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+    </form>
   );
 }

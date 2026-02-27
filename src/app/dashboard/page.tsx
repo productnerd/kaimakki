@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import Badge from "@/components/ui/Badge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import OrderDetailModal from "@/components/dashboard/OrderDetailModal";
 import BriefFormModal from "@/components/dashboard/BriefFormModal";
@@ -38,31 +37,11 @@ type Order = {
 };
 
 const COLUMNS = [
-  {
-    title: "Needs Brief",
-    statuses: ["needs_brief"],
-    actionNeeded: true,
-  },
-  {
-    title: "Submitted",
-    statuses: ["submitted"],
-    actionNeeded: false,
-  },
-  {
-    title: "In Production",
-    statuses: ["awaiting_assets", "in_production"],
-    actionNeeded: false,
-  },
-  {
-    title: "Review",
-    statuses: ["awaiting_feedback"],
-    actionNeeded: true,
-  },
-  {
-    title: "Completed",
-    statuses: ["completed"],
-    actionNeeded: false,
-  },
+  { title: "Needs Brief", statuses: ["needs_brief"] },
+  { title: "Submitted", statuses: ["submitted"] },
+  { title: "In Production", statuses: ["awaiting_assets", "in_production"] },
+  { title: "Review", statuses: ["awaiting_feedback"] },
+  { title: "Completed", statuses: ["completed"] },
 ] as const;
 
 function formatDate(iso: string): string {
@@ -150,7 +129,6 @@ export default function DashboardPage() {
           const columnOrders = orders.filter((o) =>
             (col.statuses as readonly string[]).includes(o.status)
           );
-          const showActionNeeded = col.actionNeeded && columnOrders.length > 0;
 
           return (
             <div
@@ -164,9 +142,6 @@ export default function DashboardPage() {
                 <span className="text-cream-31 text-xs">
                   {columnOrders.length}
                 </span>
-                {showActionNeeded && (
-                  <Badge variant="warning">Action Needed</Badge>
-                )}
               </div>
 
               <div className="flex flex-col gap-3">

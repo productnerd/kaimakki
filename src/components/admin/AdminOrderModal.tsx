@@ -7,6 +7,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Badge from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
+import { getRecipeIcon } from "@/lib/constants";
 
 type AdminOrder = {
   id: string;
@@ -32,7 +33,7 @@ type AdminOrder = {
   revision_deliverable_url: string | null;
   assigned_to: string | null;
   estimated_delivery_date: string | null;
-  video_recipes: { name: string } | null;
+  video_recipes: { name: string; slug: string } | null;
   profiles: { full_name: string | null; phone: string | null; email: string } | null;
   brands: { name: string } | null;
 };
@@ -131,7 +132,7 @@ export default function AdminOrderModal({ order, onClose, onUpdated }: AdminOrde
       {/* Subtitle & Status Badge */}
       <div className="flex items-center gap-3 mb-6">
         {order.video_recipes?.name && (
-          <p className="text-cream-61 text-sm">{order.video_recipes.name}</p>
+          <p className="text-cream-61 text-sm">{getRecipeIcon(order.video_recipes.slug)} {order.video_recipes.name}</p>
         )}
         <Badge variant={badgeVariant}>{formatStatus(order.status)}</Badge>
       </div>

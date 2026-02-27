@@ -20,7 +20,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       <main className={isOnboarding ? "flex-1 overflow-hidden" : "flex-1"}>
         {children}
       </main>
-      {!isOnboarding && <Footer />}
+      {!isOnboarding && <Footer wide={!!user} />}
       <CartDrawer />
       {!isOnboarding && <ChatWidget mode={chatMode} />}
     </>

@@ -205,7 +205,7 @@ export default function HomePage() {
         </h1>
         <p className="text-cream-61 text-lg max-w-2xl mx-auto mb-6">
           Pick a recipe, send footage, get scroll-stopping videos.
-          The more you order, you unlock up to 20% lifetime discount + perks.
+          The more you order, you unlock up to 25% lifetime discount + perks.
           If you sit on your content for over a month? We donate your prepayment to charity. You&apos;re welcome.
         </p>
         <div className="inline-flex items-center gap-2 bg-surface border border-border rounded-brand px-5 py-3">

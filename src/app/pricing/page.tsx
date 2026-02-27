@@ -86,9 +86,13 @@ export default function PricingPage() {
         <h2 className="font-display font-bold text-xl text-cream mb-3">
           The Loyalty Ladder
         </h2>
-        <p className="text-cream-61 text-sm mb-8">
-          Order more, pay less. Forever. Once you unlock a tier, it&apos;s yours to keep.
-          Plus perks that actually matter.
+        <p className="text-cream-61 text-sm mb-3">
+          We help you ship more videos by managing the complexity and overwhelm for you.
+          From first-time creator to mass production — we take you by the hand, one tier at a time.
+        </p>
+        <p className="text-cream-31 text-xs mb-8">
+          Prices start higher because there&apos;s an initial setup cost — we need time to understand your style,
+          preferences, brand, and strategy. Once we know you, everything gets faster, smoother, and cheaper.
         </p>
 
         <RewardsTracker mode="pricing" />

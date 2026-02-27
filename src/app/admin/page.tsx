@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Input from "@/components/ui/Input";
 import AdminOrderModal from "@/components/admin/AdminOrderModal";
+import { getRecipeIcon } from "@/lib/constants";
 
 type AdminOrder = {
   id: string;
@@ -32,7 +33,7 @@ type AdminOrder = {
   revision_deliverable_url: string | null;
   assigned_to: string | null;
   estimated_delivery_date: string | null;
-  video_recipes: { name: string } | null;
+  video_recipes: { name: string; slug: string } | null;
   profiles: { full_name: string | null; phone: string | null; email: string } | null;
   brands: { name: string } | null;
 };
@@ -84,7 +85,7 @@ export default function AdminOrdersPage() {
     const supabase = createClient();
     supabase
       .from("orders")
-      .select("*, video_recipes(name), profiles(full_name, phone, email), brands(name)")
+      .select("*, video_recipes(name, slug), profiles(full_name, phone, email), brands(name)")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setOrders((data as AdminOrder[]) || []);
@@ -200,7 +201,9 @@ export default function AdminOrdersPage() {
                       {order.order_number}
                     </td>
                     <td className="px-4 py-3 text-sm text-cream">
-                      {order.video_recipes?.name ?? "\u2014"}
+                      {order.video_recipes ? (
+                        <span>{getRecipeIcon(order.video_recipes.slug)} {order.video_recipes.name}</span>
+                      ) : "\u2014"}
                     </td>
                     <td className="px-4 py-3 text-sm text-cream">
                       <span className="flex items-center gap-2">

@@ -10,6 +10,7 @@ const tabs = [
   { label: "Orders", href: "/admin" },
   { label: "Clients", href: "/admin/clients" },
   { label: "Custom Requests", href: "/admin/requests" },
+  { label: "Tier Upgrades", href: "/admin/upgrades" },
 ] as const;
 
 export default function AdminLayout({ children }: { children: ReactNode }) {

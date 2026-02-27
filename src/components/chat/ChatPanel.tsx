@@ -70,8 +70,20 @@ export default function ChatPanel({ mode }: ChatPanelProps) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "/api/chat",
+        api: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chat`,
         body: { mode },
+        headers: () => {
+          if (mode === "dashboard") {
+            const supabase = createClient();
+            return supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.access_token) {
+                return { Authorization: `Bearer ${session.access_token}` } as Record<string, string>;
+              }
+              return {} as Record<string, string>;
+            });
+          }
+          return {} as Record<string, string>;
+        },
       }),
     [mode]
   );

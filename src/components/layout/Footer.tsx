@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-export default function Footer() {
+export default function Footer({ wide }: { wide?: boolean }) {
   return (
     <footer className="bg-brown border-t border-border">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className={`${wide ? "max-w-[100rem]" : "max-w-7xl"} mx-auto px-6 py-12`}>
         <div className="flex flex-col md:flex-row justify-between gap-8">
           <div>
             <span className="font-display font-black text-lg text-cream">

@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import Badge from "@/components/ui/Badge";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect, type ReactNode } from "react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/auth/login");
+  }, [loading, user, router]);
   const [hasOrders, setHasOrders] = useState(false);
   const [checked, setChecked] = useState(false);
 
@@ -42,7 +46,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (!checked) return null;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="max-w-[90rem] mx-auto px-6 py-8">
       <nav className="flex items-center gap-6 border-b border-border mb-8">
         {tabs.map((tab) => (
           <Link
@@ -61,10 +65,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         ))}
 
-        <span className="pb-3 text-sm font-medium text-cream-31 flex items-center gap-2 cursor-default">
-          Content Strategy Pack
-          <Badge>Coming Soon</Badge>
-        </span>
       </nav>
 
       {children}

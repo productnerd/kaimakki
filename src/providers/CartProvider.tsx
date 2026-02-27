@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
+import { getUnlockState, type Milestone } from "@/lib/unlocks";
 
 export type CartItem = {
   id: string;
@@ -76,37 +77,37 @@ const CartContext = createContext<CartContextType>({
   toggleCart: () => {},
 });
 
-type DiscountTier = { min_video_count: number; discount_percent: number };
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [lifetimeCount, setLifetimeCount] = useState(0);
-  const [tiers, setTiers] = useState<DiscountTier[]>([]);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const prevMaxTierRef = useRef(0);
   const { user } = useAuth();
   const supabase = createClient();
 
-  // Fetch discount tiers once
+  // Fetch unlock milestones once
   useEffect(() => {
     supabase
-      .from("discount_tiers")
-      .select("min_video_count, discount_percent")
-      .order("min_video_count", { ascending: true })
-      .then(({ data }) => setTiers(data ?? []));
+      .from("unlock_milestones")
+      .select("*")
+      .order("min_videos", { ascending: true })
+      .then(({ data }) => setMilestones((data ?? []) as Milestone[]));
   }, [supabase]);
 
-  // Fetch user's lifetime video count
+  // Fetch user's video counts
   const fetchVolume = useCallback(async () => {
     if (!user) {
       setLifetimeCount(0);
+      setApprovedCount(0);
       return;
     }
     const { data } = await supabase
       .from("brands")
-      .select("brand_volume(lifetime_video_count)")
+      .select("brand_volume(lifetime_video_count, approved_video_count)")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
@@ -115,6 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ? data.brand_volume[0]
       : data?.brand_volume;
     setLifetimeCount(vol?.lifetime_video_count ?? 0);
+    setApprovedCount(vol?.approved_video_count ?? 0);
   }, [user, supabase]);
 
   useEffect(() => {
@@ -157,15 +159,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function getDiscountForCount(count: number): number {
     let pct = 0;
-    for (const tier of tiers) {
-      if (count >= tier.min_video_count) pct = tier.discount_percent;
+    for (const ms of milestones) {
+      if (count >= ms.min_videos) pct = Math.max(pct, ms.discount_percent);
     }
     return pct;
   }
 
   // Optimized discount: assign highest discount % to the most expensive items
   const pricedItems: CartItemWithDiscount[] = (() => {
-    if (items.length === 0 || tiers.length === 0) {
+    if (items.length === 0 || milestones.length === 0) {
       return items.map((item) => ({
         ...item,
         discount_pct: 0,
@@ -173,9 +175,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    // 1. Collect the discount slots earned by each cart position
+    // 1. Collect the discount slots earned by each cart position (based on approved count)
     const discountSlots: number[] = items.map((_, index) => {
-      const videoNumber = lifetimeCount + index + 1;
+      const videoNumber = approvedCount + index + 1;
       return getDiscountForCount(videoNumber);
     });
 
@@ -202,7 +204,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Detect when a new tier is crossed and show toast
   useEffect(() => {
-    if (items.length === 0 || tiers.length === 0) return;
+    if (items.length === 0 || milestones.length === 0) return;
     const maxPct = Math.max(...pricedItems.map((p) => p.discount_pct), 0);
     if (maxPct > prevMaxTierRef.current && prevMaxTierRef.current >= 0) {
       if (prevMaxTierRef.current > 0 || items.length > 1) {
@@ -214,10 +216,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
     prevMaxTierRef.current = maxPct;
-  }, [items.length, tiers, pricedItems]);
+  }, [items.length, milestones, pricedItems]);
 
   async function addItem(recipeId: string, extras?: AddItemExtras) {
     if (!user) return;
+
+    // Validate recipe is unlocked for this user
+    if (milestones.length > 0) {
+      const { data: recipe } = await supabase
+        .from("video_recipes")
+        .select("slug")
+        .eq("id", recipeId)
+        .single();
+
+      if (recipe) {
+        const unlock = getUnlockState(approvedCount, milestones);
+        if (!unlock.unlockedRecipeSlugs.has(recipe.slug)) {
+          setToast("That recipe isn't unlocked yet. Post more videos to unlock it!");
+          setTimeout(() => setToast(null), 4000);
+          return;
+        }
+
+        // Validate add-on extras
+        if (extras?.needs_additional_format && !unlock.landscapeUnlocked) {
+          setToast("Additional format isn't unlocked yet.");
+          setTimeout(() => setToast(null), 4000);
+          return;
+        }
+        if (extras?.needs_stock_footage && !unlock.unlockedAddons.has("stock_footage")) {
+          setToast("Stock footage isn't unlocked yet.");
+          setTimeout(() => setToast(null), 4000);
+          return;
+        }
+        if (extras?.needs_ai_voice && !unlock.unlockedAddons.has("ai_voice")) {
+          setToast("AI voiceover isn't unlocked yet.");
+          setTimeout(() => setToast(null), 4000);
+          return;
+        }
+      }
+    }
 
     const { data } = await supabase
       .from("cart_items")
