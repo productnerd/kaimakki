@@ -553,7 +553,6 @@ export default function BuyVideosPage() {
         userDiscountPct={userDiscountPct}
         unlockState={unlock}
         milestones={milestones}
-        approvedVideoCount={approvedCount}
       />
     </div>
   );

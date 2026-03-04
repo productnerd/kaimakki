@@ -4,10 +4,7 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { useCart } from "@/providers/CartProvider";
-import { useAuth } from "@/providers/AuthProvider";
-import { useRouter } from "next/navigation";
 import { type UnlockState, type Milestone, getAddonUnlockMilestone, getEffectiveDuration, getTierIndex } from "@/lib/unlocks";
-import RecipeGuideModal from "@/components/guides/RecipeGuideModal";
 
 type Recipe = {
   id: string;
@@ -31,7 +28,6 @@ interface RecipeDetailModalProps {
   userDiscountPct?: number;
   unlockState?: UnlockState | null;
   milestones?: Milestone[];
-  approvedVideoCount?: number;
 }
 
 const EXTRAS = [
@@ -50,14 +46,11 @@ function getExampleEmbedUrl(url: string): string {
   return url;
 }
 
-export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0, unlockState, milestones = [], approvedVideoCount = 0 }: RecipeDetailModalProps) {
+export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0, unlockState, milestones = [] }: RecipeDetailModalProps) {
   const { addItem } = useCart();
-  const { user } = useAuth();
-  const router = useRouter();
   const [extras, setExtras] = useState<Record<string, boolean>>({});
   const [showDiscountInfo, setShowDiscountInfo] = useState(false);
   const [mode, setMode] = useState<"donkey" | "creative">("creative");
-  const [showGuide, setShowGuide] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
 
   if (!recipe) return null;
@@ -103,10 +96,6 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   }
 
   async function handleAddToCart() {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     await addItem(recipe!.id, {
       needs_additional_format: extras.needs_additional_format ?? false,
       needs_stock_footage: extras.needs_stock_footage ?? false,
@@ -117,8 +106,35 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
     onClose();
   }
 
+  const footerContent = (
+    <>
+      <div className="flex items-center justify-between">
+        <div>
+          {userDiscountPct > 0 && (
+            <span className="font-display text-sm text-cream-31 line-through block">
+              &euro;{fullPrice.toFixed(0)}
+            </span>
+          )}
+          <span className="font-display font-bold text-3xl text-cream">
+            &euro;{totalPrice.toFixed(0)}
+          </span>
+          <span className="text-cream-31 text-sm ml-2">per video</span>
+        </div>
+        <button
+          onClick={handleAddToCart}
+          className="w-12 h-12 rounded-brand border border-border bg-surface hover:border-accent/50 transition-colors flex items-center justify-center"
+        >
+          <span className="text-cream text-2xl font-bold leading-none">+</span>
+        </button>
+      </div>
+      <p className="text-cream-31 text-xs mt-2">
+        Add a detailed brief after checkout via your dashboard.
+      </p>
+    </>
+  );
+
   return (
-    <Modal isOpen={!!recipe} onClose={onClose} size="lg">
+    <Modal isOpen={!!recipe} onClose={onClose} size="lg" footer={footerContent}>
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -133,13 +149,13 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
               <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Filming</span>
               <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
-                🎬 {recipe.filming_difficulty}
+                {recipe.filming_difficulty}
               </Badge>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
               <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Editing</span>
               <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
-                ✂️ {recipe.editing_difficulty}
+                {recipe.editing_difficulty}
               </Badge>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
@@ -406,51 +422,6 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         )}
 
       </div>
-
-      {/* Sticky footer — price + CTA */}
-      <div className="sticky bottom-0 bg-surface border-t border-border pt-4 -mx-6 px-6 -mb-6 pb-6 mt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            {userDiscountPct > 0 && (
-              <span className="font-display text-sm text-cream-31 line-through block">
-                &euro;{fullPrice.toFixed(0)}
-              </span>
-            )}
-            <span className="font-display font-bold text-3xl text-cream">
-              &euro;{totalPrice.toFixed(0)}
-            </span>
-            <span className="text-cream-31 text-sm ml-2">per video</span>
-          </div>
-          <button
-            onClick={handleAddToCart}
-            className="w-12 h-12 rounded-brand border border-border bg-surface hover:border-accent/50 transition-colors flex items-center justify-center"
-          >
-            <span className="text-cream text-2xl font-bold leading-none">+</span>
-          </button>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-cream-31 text-xs">
-            Add a detailed brief after checkout via your dashboard.
-          </p>
-          <button
-            onClick={() => setShowGuide(true)}
-            className="text-xs text-accent hover:text-accent/80 transition-colors shrink-0 ml-3"
-          >
-            📖 View filming guide
-          </button>
-        </div>
-      </div>
-
-      {/* Recipe Guide Modal */}
-      {recipe && (
-        <RecipeGuideModal
-          recipeId={recipe.id}
-          recipeName={recipe.name}
-          isOpen={showGuide}
-          onClose={() => setShowGuide(false)}
-          approvedVideoCount={approvedVideoCount}
-        />
-      )}
     </Modal>
   );
 }

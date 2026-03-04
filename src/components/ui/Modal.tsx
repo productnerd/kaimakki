@@ -6,6 +6,7 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
   title?: string;
   size?: "sm" | "md" | "lg" | "xl";
 }
@@ -21,6 +22,7 @@ export default function Modal({
   isOpen,
   onClose,
   children,
+  footer,
   title,
   size = "md",
 }: ModalProps) {
@@ -52,16 +54,23 @@ export default function Modal({
         onClick={onClose}
       />
       <div
-        className={`relative bg-surface border border-border rounded-brand p-6 w-full ${sizes[size]} max-h-[90vh] overflow-y-auto`}
+        className={`relative bg-surface border border-border rounded-brand w-full ${sizes[size]} max-h-[90vh] flex flex-col`}
       >
-        {title && (
-          <div className="mb-4">
-            <h2 className="font-display font-bold text-xl text-cream">
-              {title}
-            </h2>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6">
+          {title && (
+            <div className="mb-4">
+              <h2 className="font-display font-bold text-xl text-cream">
+                {title}
+              </h2>
+            </div>
+          )}
+          {children}
+        </div>
+        {footer && (
+          <div className="shrink-0 border-t border-border bg-surface rounded-b-brand px-6 py-4">
+            {footer}
           </div>
         )}
-        {children}
       </div>
     </div>
   );
