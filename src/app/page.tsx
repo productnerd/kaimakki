@@ -226,66 +226,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Bundles */}
-      <div className="mb-16">
-        <h2 className="font-display font-bold text-2xl text-cream mb-2">
-          Bundles
-        </h2>
-        <p className="text-cream-31 text-sm mb-6">
-          Commit to more. Save more. Procrastinate less. (Seriously, the charity thing is real.)
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {BUNDLES.map((bundle) => (
-            <Card
-              key={bundle.name}
-              className="border-accent/30 flex flex-col"
-            >
-              <Badge variant="accent" className="uppercase tracking-wide self-start mb-3">
-                {bundle.items.reduce((n, i) => n + i.quantity, 0)} videos
-              </Badge>
-
-              <h3 className="font-display font-bold text-lg text-cream mb-2">
-                {bundle.name}
-              </h3>
-              <p className="text-cream-61 text-sm mb-4">
-                {bundle.description}
-              </p>
-
-              <ul className="text-cream-78 text-sm space-y-1 mb-6">
-                {bundle.items.map((item) => (
-                  <li key={item.recipeId}>
-                    {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                    {item.recipeName}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-auto space-y-4">
-                <div>
-                  {getEffectiveBundlePct(bundle) > 0 && (
-                    <span className="font-display text-sm text-cream-31 line-through block">
-                      &euro;{getBundleTotal(bundle)}
-                    </span>
-                  )}
-                  <span className="font-display font-bold text-2xl text-cream">
-                    &euro;{getEffectiveBundleTotal(bundle)}
-                  </span>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  size="md"
-                  loading={addingBundle === bundle.name}
-                  onClick={() => handleAddBundle(bundle)}
-                >
-                  Add all to cart
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {loading
@@ -379,6 +319,66 @@ export default function HomePage() {
               </Card>
             </>
           )}
+      </div>
+
+      {/* Bundles */}
+      <div className="mt-16">
+        <h2 className="font-display font-bold text-2xl text-cream mb-2">
+          Can&apos;t decide?
+        </h2>
+        <p className="text-cream-31 text-sm mb-6">
+          Commit to more. Save more. Procrastinate less. (Seriously, the charity thing is real.)
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {BUNDLES.map((bundle) => (
+            <Card
+              key={bundle.name}
+              className="border-accent/30 flex flex-col"
+            >
+              <Badge variant="accent" className="uppercase tracking-wide self-start mb-3">
+                {bundle.items.reduce((n, i) => n + i.quantity, 0)} videos
+              </Badge>
+
+              <h3 className="font-display font-bold text-lg text-cream mb-2">
+                {bundle.name}
+              </h3>
+              <p className="text-cream-61 text-sm mb-4">
+                {bundle.description}
+              </p>
+
+              <ul className="text-cream-78 text-sm space-y-1 mb-6">
+                {bundle.items.map((item) => (
+                  <li key={item.recipeId}>
+                    {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                    {item.recipeName}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto space-y-4">
+                <div>
+                  {getEffectiveBundlePct(bundle) > 0 && (
+                    <span className="font-display text-sm text-cream-31 line-through block">
+                      &euro;{getBundleTotal(bundle)}
+                    </span>
+                  )}
+                  <span className="font-display font-bold text-2xl text-cream">
+                    &euro;{getEffectiveBundleTotal(bundle)}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  size="md"
+                  loading={addingBundle === bundle.name}
+                  onClick={() => handleAddBundle(bundle)}
+                >
+                  Add all to cart
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Recipe Detail Modal */}
