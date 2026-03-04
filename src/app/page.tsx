@@ -10,6 +10,7 @@ import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
 import { useCart } from "@/providers/CartProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Recipe = {
   id: string;
@@ -87,7 +88,7 @@ export default function HomePage() {
   const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const [userDiscountPct, setUserDiscountPct] = useState(0);
   const { addItem } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
 
   // Map recipe IDs to their price in euros for bundle totals
@@ -199,6 +200,13 @@ export default function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
+      {profile?.is_admin && (
+        <div className="flex justify-end mb-4">
+          <Link href="/admin/recipes" className="text-xs text-cream-31 hover:text-cream transition-colors">
+            Admin: View all recipes &rarr;
+          </Link>
+        </div>
+      )}
       {/* Hero */}
       <div className="text-center mb-16">
         <h1 className="font-display font-black text-4xl md:text-6xl text-cream mb-4 tracking-tight">
