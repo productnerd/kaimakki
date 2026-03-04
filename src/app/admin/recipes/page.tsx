@@ -11,7 +11,8 @@ type Recipe = {
   slug: string;
   name: string;
   description: string | null;
-  complexity: string;
+  filming_difficulty: string;
+  editing_difficulty: string;
   price_cents: number;
   turnaround_days: number;
   base_output_seconds: number;
@@ -97,7 +98,8 @@ export default function AdminRecipesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-display font-bold text-cream">{r.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{r.complexity}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">🎬 {r.filming_difficulty}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">✂️ {r.editing_difficulty}</span>
                     {r.tag && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-lime/10 text-lime">{r.tag}</span>
                     )}
@@ -127,7 +129,8 @@ export default function AdminRecipesPage() {
                     <Field label="ID" value={r.id} mono />
                     <Field label="Price" value={`€${(r.price_cents / 100).toFixed(0)} (${r.price_cents}c)`} />
                     <Field label="Creative surcharge" value={`${r.creative_surcharge_percent}%`} />
-                    <Field label="Complexity" value={r.complexity} />
+                    <Field label="Filming difficulty" value={r.filming_difficulty} />
+                    <Field label="Editing difficulty" value={r.editing_difficulty} />
                     <Field label="Base duration" value={`${r.base_output_seconds}s`} />
                     <Field label="Turnaround" value={`${r.turnaround_days} days`} />
                     <Field label="Min tier videos" value={String(r.min_tier_videos)} />

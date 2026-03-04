@@ -17,7 +17,8 @@ type Recipe = {
   slug: string;
   name: string;
   description: string;
-  complexity: string;
+  filming_difficulty: string;
+  editing_difficulty: string;
   price_cents: number;
   turnaround_days: number;
   base_output_seconds: number;
@@ -245,9 +246,14 @@ export default function HomePage() {
                   onClick={() => setSelectedRecipe(recipe)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <Badge variant={recipe.complexity === "simple" ? "lime" : "accent"}>
-                      {recipe.complexity}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
+                        🎬 {recipe.filming_difficulty}
+                      </Badge>
+                      <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
+                        ✂️ {recipe.editing_difficulty}
+                      </Badge>
+                    </div>
                     <span className="text-cream-31 text-[10px]">
                       {recipe.turnaround_days}d
                     </span>
@@ -291,7 +297,7 @@ export default function HomePage() {
                       size="sm"
                       onClick={(e) => handleAddToCart(e, recipe.id)}
                     >
-                      Add to cart
+                      +
                     </Button>
                   </div>
                 </Card>

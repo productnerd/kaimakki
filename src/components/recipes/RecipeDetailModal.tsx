@@ -14,7 +14,8 @@ type Recipe = {
   slug: string;
   name: string;
   description: string;
-  complexity: string;
+  filming_difficulty: string;
+  editing_difficulty: string;
   price_cents: number;
   turnaround_days: number;
   base_output_seconds: number;
@@ -119,9 +120,15 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               <span className="text-cream text-sm font-medium">{recipe.turnaround_days} days</span>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
-              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Complexity</span>
-              <Badge variant={recipe.complexity === "simple" ? "lime" : "accent"}>
-                {recipe.complexity}
+              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Filming</span>
+              <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
+                🎬 {recipe.filming_difficulty}
+              </Badge>
+            </div>
+            <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
+              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Editing</span>
+              <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
+                ✂️ {recipe.editing_difficulty}
               </Badge>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
@@ -313,7 +320,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         {unlockState?.nextMilestone && unlockState.nextMilestone.discount_percent > unlockState.discountPct ? (
           <div className="flex items-center gap-2 bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
             <span className="text-lime text-sm font-medium">
-              Get {unlockState.nextMilestone.discount_percent}% lifetime discount after your {unlockState.nextMilestone.min_videos}{unlockState.nextMilestone.min_videos === 3 ? "rd" : "th"} video
+              Get {unlockState.nextMilestone.discount_percent}% lifetime discount after posting your {unlockState.nextMilestone.min_videos}th video
             </span>
             <button
               type="button"
@@ -326,7 +333,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         ) : !unlockState ? (
           <div className="flex items-center gap-2 bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
             <span className="text-lime text-sm font-medium">
-              Get 10% lifetime discount after your 3rd video
+              Get 10% lifetime discount after posting your 6th video
             </span>
             <button
               type="button"
@@ -341,8 +348,8 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           <div className="bg-surface border border-border rounded-brand p-4 text-sm text-cream-61 -mt-3">
             Every new client takes time to set up — learning your brand, style, and preferences.
             As we work together and refine the process, production gets faster and our margins improve.
-            Instead of pocketing the difference, we pass those savings to you. The more we collaborate,
-            the cheaper it gets. Simple as that.
+            Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
+            The more we collaborate, the cheaper it gets. Simple as that.
           </div>
         )}
 
