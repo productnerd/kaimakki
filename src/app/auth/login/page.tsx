@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
-import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -62,10 +61,10 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-6">
       <Card className="max-w-md w-full">
         <h1 className="font-display font-bold text-2xl text-cream mb-1">
-          Welcome back
+          Sign in
         </h1>
         <p className="text-cream-61 text-sm mb-6">
-          Sign in to Kaimakki Studio
+          Enter your email — we&apos;ll send a magic link
         </p>
 
         <form onSubmit={handleMagicLink} className="flex flex-col gap-4">
@@ -84,12 +83,6 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="text-sm text-cream-31 mt-6 text-center">
-          Don&apos;t have an account?{" "}
-          <Link href="/auth/signup" className="text-accent hover:underline">
-            Sign up
-          </Link>
-        </p>
       </Card>
     </div>
   );

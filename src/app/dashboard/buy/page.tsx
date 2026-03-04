@@ -88,6 +88,17 @@ const DISCOUNT_TIERS = [
   { min: 3, pct: 10 },
 ];
 
+const DIFFICULTY_RANK: Record<string, number> = {
+  simple: 0,
+  moderate: 1,
+  "somewhat complex": 2,
+  "very complex": 3,
+};
+
+function getOverallDifficulty(filming: string, editing: string): string {
+  return (DIFFICULTY_RANK[filming] ?? 0) >= (DIFFICULTY_RANK[editing] ?? 0) ? filming : editing;
+}
+
 function getEmbedUrl(url: string): string {
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?]+)/);
   if (shortsMatch) {
@@ -331,14 +342,9 @@ export default function BuyVideosPage() {
                   onClick={() => setSelectedRecipe(recipe)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
-                        🎬 {recipe.filming_difficulty}
-                      </Badge>
-                      <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
-                        ✂️ {recipe.editing_difficulty}
-                      </Badge>
-                    </div>
+                    <Badge variant={getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple" ? "lime" : "accent"}>
+                      {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
+                    </Badge>
                     <span className="text-cream-31 text-[10px]">
                       {recipe.turnaround_days}d
                     </span>

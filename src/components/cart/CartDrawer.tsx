@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "@/providers/CartProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import { getRecipeIcon } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import { useEffect, useState } from "react";
@@ -39,7 +40,10 @@ function getExtrasTotal(g: {
 
 export default function CartDrawer() {
   const { items, pricedItems, isOpen, closeCart, removeItem, itemCount, videoItemCount, isFirstTimeBuyer, toast, clearToast } = useCart();
+  const { user } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [guestEmail, setGuestEmail] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -115,7 +119,8 @@ export default function CartDrawer() {
   const totalSaved = subtotalBeforeDiscount - subtotal;
 
   const videosNeeded = isFirstTimeBuyer ? Math.max(0, MIN_FIRST_ORDER_VIDEOS - videoItemCount) : 0;
-  const canCheckout = videoItemCount > 0 && videosNeeded === 0;
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail);
+  const canCheckout = videoItemCount > 0 && videosNeeded === 0 && (user || isValidEmail);
 
   async function handleRemoveGroup(ids: string[]) {
     for (const id of ids) {
@@ -125,25 +130,46 @@ export default function CartDrawer() {
 
   async function handleCheckout() {
     setCheckoutLoading(true);
+    setCheckoutError("");
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      let body: string | undefined;
+
+      if (user) {
+        // Authenticated checkout
+        const { data: { session } } = await supabase.auth.getSession();
+        headers.Authorization = `Bearer ${session?.access_token}`;
+      } else {
+        // Guest checkout — send email + cart items
+        body = JSON.stringify({
+          guest_email: guestEmail,
+          guest_cart: items.map((i) => ({
+            recipe_id: i.recipe_id,
+            recipe_mode: i.recipe_mode,
+            needs_additional_format: i.needs_additional_format,
+            needs_stock_footage: i.needs_stock_footage,
+            needs_ai_voice: i.needs_ai_voice,
+          })),
+        });
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/checkout`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { method: "POST", headers, body }
       );
       const data = await res.json();
+      if (data.error) {
+        setCheckoutError(data.error);
+        setCheckoutLoading(false);
+        return;
+      }
       if (data.url) {
         closeCart();
         window.location.href = data.url;
       }
     } catch {
+      setCheckoutError("Something went wrong. Try again.");
       setCheckoutLoading(false);
     }
   }
@@ -335,6 +361,23 @@ export default function CartDrawer() {
                 &euro;{(subtotal / 100).toFixed(0)}
               </span>
             </div>
+            {!user && (
+              <div>
+                <input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 rounded-brand bg-background border border-border text-cream text-sm placeholder:text-cream-31 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                />
+                <p className="text-cream-31 text-[10px] mt-1.5">
+                  We&apos;ll create your account after payment and send you a login link.
+                </p>
+              </div>
+            )}
+            {checkoutError && (
+              <p className="text-red-400 text-xs">{checkoutError}</p>
+            )}
             <Button
               className="w-full"
               size="lg"

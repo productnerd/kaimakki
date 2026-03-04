@@ -74,7 +74,7 @@ export default function Header() {
                 href="/"
                 className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
               >
-                RECIPES
+                SAVE VIDEO TEMPLATES
               </Link>
               <Link
                 href="/pricing"
@@ -82,6 +82,20 @@ export default function Header() {
               >
                 LOYALTY PROGRAM
               </Link>
+              {/* Cart button for guests */}
+              <button
+                onClick={toggleCart}
+                className="relative text-cream-78 hover:text-cream transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
+                </svg>
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
               <Link href="/auth/login">
                 <Button size="sm" className="uppercase tracking-wider text-xs">SIGN IN</Button>
               </Link>
@@ -140,7 +154,7 @@ export default function Header() {
           ) : (
             <>
               <Link href="/" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
-                RECIPES
+                SAVE VIDEO TEMPLATES
               </Link>
               <Link href="/pricing" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
                 LOYALTY PROGRAM

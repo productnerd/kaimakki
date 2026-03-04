@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
 import { getUnlockState, type Milestone } from "@/lib/unlocks";
 
+const GUEST_CART_KEY = "kaimakki_guest_cart";
+
 export type CartItem = {
   id: string;
   recipe_id: string;
@@ -84,6 +86,14 @@ const CartContext = createContext<CartContextType>({
   toggleCart: () => {},
 });
 
+function saveGuestCart(cartItems: CartItem[]) {
+  try {
+    localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cartItems));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,9 +151,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const fetchCart = useCallback(async () => {
     if (!user) {
-      setItems([]);
+      // Guest mode: load from localStorage
+      try {
+        const stored = localStorage.getItem(GUEST_CART_KEY);
+        setItems(stored ? JSON.parse(stored) : []);
+      } catch {
+        setItems([]);
+      }
       setLoading(false);
       return;
+    }
+
+    // Merge any guest cart items into DB before fetching
+    try {
+      const stored = localStorage.getItem(GUEST_CART_KEY);
+      if (stored) {
+        const guestItems = JSON.parse(stored) as CartItem[];
+        for (const item of guestItems) {
+          await supabase.from("cart_items").insert({
+            user_id: user.id,
+            recipe_id: item.recipe_id,
+            primary_platform: item.primary_platform,
+            primary_aspect_ratio: item.primary_aspect_ratio,
+            needs_additional_format: item.needs_additional_format,
+            needs_stock_footage: item.needs_stock_footage,
+            needs_ai_voice: item.needs_ai_voice,
+            recipe_mode: item.recipe_mode,
+          });
+        }
+        localStorage.removeItem(GUEST_CART_KEY);
+      }
+    } catch {
+      // ignore parse errors
     }
 
     const { data } = await supabase
@@ -284,7 +323,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   async function addItem(recipeId: string, extras?: AddItemExtras) {
-    if (!user) return;
+    if (!user) {
+      // Guest mode: fetch recipe details and store in localStorage
+      const { data: recipe } = await supabase
+        .from("video_recipes")
+        .select("name, slug, price_cents, recipe_type, creative_surcharge_percent")
+        .eq("id", recipeId)
+        .single();
+
+      if (!recipe) return;
+
+      const mode = extras?.recipe_mode ?? "donkey";
+      const rawPrice = recipe.price_cents;
+      const surcharge = recipe.creative_surcharge_percent ?? 25;
+      const effectivePrice = mode === "creative"
+        ? Math.round(rawPrice * (1 + surcharge / 100))
+        : rawPrice;
+
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        recipe_id: recipeId,
+        recipe_name: recipe.name,
+        recipe_slug: recipe.slug,
+        recipe_type: recipe.recipe_type,
+        price_cents: effectivePrice,
+        intake_responses: null,
+        notes: null,
+        footage_folder_url: null,
+        primary_platform: "instagram_reels",
+        primary_aspect_ratio: "9:16",
+        needs_additional_format: extras?.needs_additional_format ?? false,
+        additional_aspect_ratio: null,
+        needs_stock_footage: extras?.needs_stock_footage ?? false,
+        needs_ai_voice: extras?.needs_ai_voice ?? false,
+        recipe_mode: mode,
+      };
+
+      const updated = [...items, newItem];
+      setItems(updated);
+      saveGuestCart(updated);
+      setIsOpen(true);
+      return;
+    }
 
     // Validate recipe is unlocked for this user
     if (milestones.length > 0) {
@@ -347,6 +427,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   async function removeItem(itemId: string) {
+    if (!user) {
+      const remaining = items.filter((i) => i.id !== itemId);
+      setItems(remaining);
+      saveGuestCart(remaining);
+      return;
+    }
+
     // Don't allow removing session items directly
     const item = items.find((i) => i.id === itemId);
     if (item && sessionRecipeIdSet.has(item.recipe_id)) return;
@@ -364,6 +451,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   async function updateItem(itemId: string, updates: Partial<CartItem>) {
+    if (!user) {
+      const updated = items.map((i) => (i.id === itemId ? { ...i, ...updates } : i));
+      setItems(updated);
+      saveGuestCart(updated);
+      return;
+    }
+
     await supabase.from("cart_items").update(updates).eq("id", itemId);
     setItems((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, ...updates } : i))
@@ -371,7 +465,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   async function clearCart() {
-    if (!user) return;
+    if (!user) {
+      setItems([]);
+      localStorage.removeItem(GUEST_CART_KEY);
+      return;
+    }
     await supabase.from("cart_items").delete().eq("user_id", user.id);
     setItems([]);
   }

@@ -68,6 +68,17 @@ const BUNDLES: Bundle[] = [
   },
 ];
 
+const DIFFICULTY_RANK: Record<string, number> = {
+  simple: 0,
+  moderate: 1,
+  "somewhat complex": 2,
+  "very complex": 3,
+};
+
+function getOverallDifficulty(filming: string, editing: string): string {
+  return (DIFFICULTY_RANK[filming] ?? 0) >= (DIFFICULTY_RANK[editing] ?? 0) ? filming : editing;
+}
+
 function getEmbedUrl(url: string): string {
   // YouTube Shorts: /shorts/VIDEO_ID → /embed/VIDEO_ID
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?]+)/);
@@ -144,10 +155,6 @@ export default function HomePage() {
   }
 
   async function handleAddBundle(bundle: Bundle) {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     setAddingBundle(bundle.name);
     for (const item of bundle.items) {
       for (let i = 0; i < item.quantity; i++) {
@@ -193,10 +200,6 @@ export default function HomePage() {
 
   async function handleAddToCart(e: React.MouseEvent, recipeId: string) {
     e.stopPropagation();
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     await addItem(recipeId);
   }
 
@@ -247,14 +250,9 @@ export default function HomePage() {
                   onClick={() => setSelectedRecipe(recipe)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
-                        🎬 {recipe.filming_difficulty}
-                      </Badge>
-                      <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
-                        ✂️ {recipe.editing_difficulty}
-                      </Badge>
-                    </div>
+                    <Badge variant={getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple" ? "lime" : "accent"}>
+                      {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
+                    </Badge>
                     <span className="text-cream-31 text-[10px]">
                       {recipe.turnaround_days}d
                     </span>
