@@ -74,7 +74,7 @@ export default function Header() {
                 href="/"
                 className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
               >
-                SAVE VIDEO TEMPLATES
+                VIDEO TEMPLATES
               </Link>
               <Link
                 href="/pricing"
@@ -154,7 +154,7 @@ export default function Header() {
           ) : (
             <>
               <Link href="/" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
-                SAVE VIDEO TEMPLATES
+                VIDEO TEMPLATES
               </Link>
               <Link href="/pricing" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
                 LOYALTY PROGRAM
