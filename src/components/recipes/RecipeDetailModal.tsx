@@ -22,6 +22,7 @@ type Recipe = {
   intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean; mode?: string; weHandleLabel?: string }[] };
   deliverables_description: string[];
   creative_surcharge_percent: number;
+  example_urls: string[];
 };
 
 interface RecipeDetailModalProps {
@@ -40,6 +41,15 @@ const EXTRAS = [
   { key: "needs_expedited", label: "Expedited delivery", sublabel: "Rush it — 2 business days", price: 40, addonKey: "expedited" },
 ] as const;
 
+function getExampleEmbedUrl(url: string): string {
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?]+)/);
+  if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=0&mute=1&loop=1&controls=0&playlist=${shortsMatch[1]}`;
+  const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=0&mute=1&controls=0`;
+  if (url.includes("instagram.com/reel/") || url.includes("instagram.com/p/")) return `${url.replace(/\/?$/, "/embed/")}`;
+  return url;
+}
+
 export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0, unlockState, milestones = [], approvedVideoCount = 0 }: RecipeDetailModalProps) {
   const { addItem } = useCart();
   const { user } = useAuth();
@@ -48,6 +58,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   const [showDiscountInfo, setShowDiscountInfo] = useState(false);
   const [mode, setMode] = useState<"donkey" | "creative">("creative");
   const [showGuide, setShowGuide] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
 
   if (!recipe) return null;
 
@@ -147,6 +158,47 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         <p className="text-cream-61 leading-relaxed">
           {recipe.description}
         </p>
+
+        {/* Examples toggle */}
+        {recipe.example_urls && recipe.example_urls.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowExamples(!showExamples)}
+              className="text-xs text-accent hover:text-accent/80 transition-colors"
+            >
+              {showExamples ? "▾ Hide examples" : "▸ See examples"}
+            </button>
+            {showExamples && (
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {[0, 1, 2].map((i) => {
+                  const url = recipe.example_urls[i];
+                  if (!url) {
+                    return (
+                      <div
+                        key={i}
+                        className="aspect-[9/16] rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center"
+                      >
+                        <span className="text-cream-20 text-xs">No example yet</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={i} className="aspect-[9/16] rounded-xl overflow-hidden bg-black">
+                      <iframe
+                        src={getExampleEmbedUrl(url)}
+                        className="w-full h-full border-0"
+                        allowFullScreen
+                        loading="lazy"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Mode toggle */}
         <div className="flex gap-2">
@@ -353,8 +405,11 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           </div>
         )}
 
-        {/* Price and CTA */}
-        <div className="flex items-center justify-between pt-2">
+      </div>
+
+      {/* Sticky footer — price + CTA */}
+      <div className="sticky bottom-0 bg-surface border-t border-border pt-4 -mx-6 px-6 -mb-6 pb-6 mt-6">
+        <div className="flex items-center justify-between">
           <div>
             {userDiscountPct > 0 && (
               <span className="font-display text-sm text-cream-31 line-through block">
@@ -373,9 +428,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             <span className="text-cream text-2xl font-bold leading-none">+</span>
           </button>
         </div>
-
-        {/* Dashboard brief note + guide link */}
-        <div className="flex items-center justify-between -mt-2">
+        <div className="flex items-center justify-between mt-2">
           <p className="text-cream-31 text-xs">
             Add a detailed brief after checkout via your dashboard.
           </p>

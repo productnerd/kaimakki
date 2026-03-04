@@ -26,6 +26,7 @@ type Recipe = {
   deliverables_description: string[];
   example_video_url: string | null;
   creative_surcharge_percent: number;
+  example_urls: string[];
 };
 
 type Bundle = {

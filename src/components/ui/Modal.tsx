@@ -55,29 +55,11 @@ export default function Modal({
         className={`relative bg-surface border border-border rounded-brand p-6 w-full ${sizes[size]} max-h-[90vh] overflow-y-auto`}
       >
         {title && (
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h2 className="font-display font-bold text-xl text-cream">
               {title}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-cream-31 hover:text-cream transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
           </div>
-        )}
-        {!title && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-cream-31 hover:text-cream transition-colors"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         )}
         {children}
       </div>

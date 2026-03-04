@@ -29,6 +29,7 @@ type Recipe = {
   extras_schema: Record<string, unknown> | null;
   recipe_type: string;
   creative_surcharge_percent: number;
+  example_urls: string[] | null;
 };
 
 export default function AdminRecipesPage() {
@@ -216,6 +217,23 @@ export default function AdminRecipesPage() {
                     <Field label="Thumbnail URL" value={r.example_thumbnail_url ?? "—"} mono />
                     <Field label="Video URL" value={r.example_video_url ?? "—"} mono />
                   </div>
+
+                  {/* Example URLs */}
+                  {r.example_urls && r.example_urls.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-cream-31 mb-1">
+                        Example URLs ({r.example_urls.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {r.example_urls.map((url, i) => (
+                          <li key={i} className="text-xs text-cream-61 font-mono break-all">
+                            <span className="text-cream-31 mr-1">{i + 1}.</span>
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">{url}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
