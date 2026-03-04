@@ -24,7 +24,7 @@ export default function Footer({ wide }: { wide?: boolean }) {
                 Video Recipes
               </Link>
               <Link href="/pricing" className="text-sm text-cream-31 hover:text-cream transition-colors">
-                Pricing
+                Loyalty Program
               </Link>
             </div>
             <div className="flex flex-col gap-2">

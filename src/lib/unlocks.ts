@@ -157,6 +157,24 @@ export function canRequestTierUpgrade(
   };
 }
 
+/**
+ * Compute effective duration for a recipe given the user's tier index.
+ * Each tier adds +5s on top of the recipe's base duration.
+ * tierIndex: 0 = Rookie, 1 = Rookie+, 2 = Regular, ..., 8 = OG
+ */
+export function getEffectiveDuration(baseSeconds: number, tierIndex: number): number {
+  return baseSeconds + tierIndex * 5;
+}
+
+/**
+ * Get the tier index (0-based position in sorted milestones) for a given tier name.
+ */
+export function getTierIndex(tierName: string, milestones: Milestone[]): number {
+  const sorted = [...milestones].sort((a, b) => a.min_videos - b.min_videos);
+  const idx = sorted.findIndex((m) => m.tier_name === tierName);
+  return idx >= 0 ? idx : 0;
+}
+
 /** Get the milestone that unlocks a specific add-on */
 export function getAddonUnlockMilestone(
   addonKey: string,

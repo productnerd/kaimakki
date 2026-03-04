@@ -6,7 +6,8 @@ import Badge from "@/components/ui/Badge";
 import { useCart } from "@/providers/CartProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { type UnlockState, type Milestone, getAddonUnlockMilestone } from "@/lib/unlocks";
+import { type UnlockState, type Milestone, getAddonUnlockMilestone, getEffectiveDuration, getTierIndex } from "@/lib/unlocks";
+import RecipeGuideModal from "@/components/guides/RecipeGuideModal";
 
 type Recipe = {
   id: string;
@@ -16,9 +17,10 @@ type Recipe = {
   complexity: string;
   price_cents: number;
   turnaround_days: number;
-  max_output_seconds: number;
-  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean }[] };
+  base_output_seconds: number;
+  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean; mode?: string; weHandleLabel?: string }[] };
   deliverables_description: string[];
+  creative_surcharge_percent: number;
 };
 
 interface RecipeDetailModalProps {
@@ -27,6 +29,7 @@ interface RecipeDetailModalProps {
   userDiscountPct?: number;
   unlockState?: UnlockState | null;
   milestones?: Milestone[];
+  approvedVideoCount?: number;
 }
 
 const EXTRAS = [
@@ -36,12 +39,14 @@ const EXTRAS = [
   { key: "needs_expedited", label: "Expedited delivery", sublabel: "Rush it — 2 business days", price: 40, addonKey: "expedited" },
 ] as const;
 
-export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0, unlockState, milestones = [] }: RecipeDetailModalProps) {
+export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0, unlockState, milestones = [], approvedVideoCount = 0 }: RecipeDetailModalProps) {
   const { addItem } = useCart();
   const { user } = useAuth();
   const router = useRouter();
   const [extras, setExtras] = useState<Record<string, boolean>>({});
   const [showDiscountInfo, setShowDiscountInfo] = useState(false);
+  const [mode, setMode] = useState<"donkey" | "creative">("creative");
+  const [showGuide, setShowGuide] = useState(false);
 
   if (!recipe) return null;
 
@@ -65,17 +70,18 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
     return "Locked";
   }
 
-  // Effective max duration = min of recipe cap and user's tier cap
-  const effectiveMaxDuration = unlockState
-    ? Math.min(recipe.max_output_seconds, unlockState.maxDurationSeconds)
-    : recipe.max_output_seconds;
-  const durationCapped = unlockState && unlockState.maxDurationSeconds < recipe.max_output_seconds;
+  // Effective duration = base + tier boost (+5s per tier)
+  const tierIndex = unlockState ? getTierIndex(unlockState.tier, milestones) : 0;
+  const effectiveMaxDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
+  const hasDurationBoost = tierIndex > 0;
 
+  const creativeSurcharge = recipe.creative_surcharge_percent ?? 25;
   const extrasTotal = EXTRAS.reduce(
     (sum, e) => sum + (extras[e.key] && isExtraUnlocked(e) ? e.price : 0),
     0
   );
-  const basePrice = recipe.price_cents / 100;
+  const rawBase = recipe.price_cents / 100;
+  const basePrice = mode === "creative" ? Math.round(rawBase * (1 + creativeSurcharge / 100)) : rawBase;
   const discountedBase = Math.round(basePrice * (1 - userDiscountPct / 100));
   const totalPrice = discountedBase + extrasTotal;
   const fullPrice = basePrice + extrasTotal;
@@ -93,6 +99,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
       needs_additional_format: extras.needs_additional_format ?? false,
       needs_stock_footage: extras.needs_stock_footage ?? false,
       needs_ai_voice: extras.needs_ai_voice ?? false,
+      recipe_mode: mode,
     });
     setExtras({});
     onClose();
@@ -120,9 +127,9 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
               <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Max duration</span>
               <span className="text-cream text-sm font-medium">{effectiveMaxDuration}s</span>
-              {durationCapped && (
-                <span className="text-accent text-[9px] block mt-0.5">
-                  Up to {recipe.max_output_seconds}s at higher tiers
+              {hasDurationBoost && (
+                <span className="text-lime text-[9px] block mt-0.5">
+                  +{tierIndex * 5}s tier bonus
                 </span>
               )}
             </div>
@@ -134,6 +141,39 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           {recipe.description}
         </p>
 
+        {/* Mode toggle */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode("donkey")}
+            className={`flex-1 p-3 rounded-brand border transition-colors text-left ${
+              mode === "donkey"
+                ? "border-accent/50 bg-accent/5"
+                : "border-border bg-background/50 hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span>🫏</span>
+              <span className={`text-sm font-medium ${mode === "donkey" ? "text-cream" : "text-cream-61"}`}>Donkey Mode</span>
+            </div>
+            <p className="text-xs text-cream-31">You tell us exactly what to do</p>
+          </button>
+          <button
+            onClick={() => setMode("creative")}
+            className={`flex-1 p-3 rounded-brand border transition-colors text-left ${
+              mode === "creative"
+                ? "border-accent/50 bg-accent/5"
+                : "border-border bg-background/50 hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span>🎨</span>
+              <span className={`text-sm font-medium ${mode === "creative" ? "text-cream" : "text-cream-61"}`}>Creative Mode</span>
+              <span className="text-[9px] uppercase tracking-wider bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">Recommended</span>
+            </div>
+            <p className="text-xs text-cream-31">We handle the creative direction (+{creativeSurcharge}%)</p>
+          </button>
+        </div>
+
         {/* What you provide / What you get — side by side */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-background/50 rounded-brand p-4 border border-border">
@@ -141,19 +181,38 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               What you provide
             </h3>
             <ul className="space-y-2">
-              {recipe.intake_form_schema.fields.map((field) => (
-                <li key={field.name} className="flex items-start gap-2 text-sm text-cream-61">
-                  <span className="text-accent mt-0.5">&#x2022;</span>
-                  <span>
-                    {field.label}
-                    {field.required && <span className="text-accent ml-1">*</span>}
-                  </span>
-                </li>
-              ))}
+              {recipe.intake_form_schema.fields.map((field) => {
+                const isDonkeyOnly = field.mode === "donkey";
+                const isCreative = mode === "creative";
+                if (isDonkeyOnly && isCreative) {
+                  return (
+                    <li key={field.name} className="flex items-start gap-2 text-sm">
+                      <span className="text-cream-20 mt-0.5">&#x2022;</span>
+                      <span className="text-cream-31 line-through">{field.label}</span>
+                      <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full ml-1 shrink-0">✨ {field.weHandleLabel}</span>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={field.name} className="flex items-start gap-2 text-sm text-cream-61">
+                    <span className="text-accent mt-0.5">&#x2022;</span>
+                    <span>
+                      {field.label}
+                      {field.required && <span className="text-accent ml-1">*</span>}
+                    </span>
+                  </li>
+                );
+              })}
               <li className="flex items-start gap-2 text-sm text-cream-61">
                 <span className="text-accent mt-0.5">&#x2022;</span>
                 <span>Raw footage (Google Drive, Dropbox, etc.)</span>
               </li>
+              {mode === "creative" && (
+                <li className="flex items-start gap-2 text-sm text-accent mt-2">
+                  <span className="mt-0.5">✨</span>
+                  <span>We send you custom creative directions with script + shot list</span>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -168,6 +227,18 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
                   <span>{d}</span>
                 </li>
               ))}
+              {mode === "creative" && (
+                <>
+                  <li className="flex items-start gap-2 text-sm text-accent">
+                    <span className="mt-0.5">&#x2713;</span>
+                    <span>Custom creative direction</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-accent">
+                    <span className="mt-0.5">&#x2713;</span>
+                    <span>Script + shot list</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -296,11 +367,30 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           </button>
         </div>
 
-        {/* Dashboard brief note */}
-        <p className="text-cream-31 text-xs text-center -mt-2">
-          Add a detailed brief and inspirations after checkout via your dashboard.
-        </p>
+        {/* Dashboard brief note + guide link */}
+        <div className="flex items-center justify-between -mt-2">
+          <p className="text-cream-31 text-xs">
+            Add a detailed brief after checkout via your dashboard.
+          </p>
+          <button
+            onClick={() => setShowGuide(true)}
+            className="text-xs text-accent hover:text-accent/80 transition-colors shrink-0 ml-3"
+          >
+            📖 View filming guide
+          </button>
+        </div>
       </div>
+
+      {/* Recipe Guide Modal */}
+      {recipe && (
+        <RecipeGuideModal
+          recipeId={recipe.id}
+          recipeName={recipe.name}
+          isOpen={showGuide}
+          onClose={() => setShowGuide(false)}
+          approvedVideoCount={approvedVideoCount}
+        />
+      )}
     </Modal>
   );
 }

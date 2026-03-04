@@ -19,10 +19,11 @@ type Recipe = {
   complexity: string;
   price_cents: number;
   turnaround_days: number;
-  max_output_seconds: number;
-  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean }[] };
+  base_output_seconds: number;
+  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean; mode?: string; weHandleLabel?: string }[] };
   deliverables_description: string[];
   example_video_url: string | null;
+  creative_surcharge_percent: number;
 };
 
 type Bundle = {
@@ -159,6 +160,7 @@ export default function HomePage() {
       .from("video_recipes")
       .select("*")
       .eq("is_active", true)
+      .eq("recipe_type", "video")
       .order("sort_order")
       .then(({ data }) => {
         setRecipes(data || []);

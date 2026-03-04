@@ -26,6 +26,16 @@ export default function RewardsTracker({
 }: RewardsTrackerProps) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [avgPriceCents, setAvgPriceCents] = useState<number>(0);
+  const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set());
+
+  function toggleExpand(id: string) {
+    setExpandedTiers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -38,6 +48,7 @@ export default function RewardsTracker({
       .from("video_recipes")
       .select("price_cents")
       .eq("is_active", true)
+      .eq("recipe_type", "video")
       .then(({ data }) => {
         if (data && data.length > 0) {
           const avg = data.reduce((sum, r) => sum + r.price_cents, 0) / data.length;
@@ -142,8 +153,8 @@ export default function RewardsTracker({
             const first = milestones.find((m) => m.custom_requests_unlocked);
             if (first?.id === ms.id) features.push({ icon: "✏️", label: "Custom requests" });
           }
-          if (ms.max_duration_seconds > (i > 0 ? milestones[i - 1].max_duration_seconds : 0)) {
-            features.push({ icon: "⏱️", label: `Up to ${ms.max_duration_seconds}s` });
+          if (i > 0) {
+            features.push({ icon: "⏱️", label: `+${i * 5}s duration bonus` });
           }
 
           // Support perks only
@@ -151,6 +162,60 @@ export default function RewardsTracker({
           for (const perk of ms.perks) {
             if (perk.label.includes("discount")) continue;
             if (perk.category === "support") supportPerks.push(perk);
+          }
+
+          // Cumulative data for "Full package" expansion
+          const cumRecipes: CatItem[] = [];
+          const cumFeatures: CatItem[] = [];
+          const cumSupport: CatItem[] = [];
+          if (i > 0 && expandedTiers.has(ms.id)) {
+            const seenR = new Set<string>();
+            const seenF = new Set<string>();
+            const seenS = new Set<string>();
+            for (let j = 0; j <= i; j++) {
+              const m = milestones[j];
+              for (const slug of m.unlocked_recipe_slugs) {
+                if (!seenR.has(slug)) {
+                  seenR.add(slug);
+                  cumRecipes.push({ icon: getRecipeIcon(slug), label: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) });
+                }
+              }
+              for (const perk of m.perks) {
+                if (perk.category === "recipes" && !seenR.has(perk.label)) {
+                  seenR.add(perk.label);
+                  cumRecipes.push({ icon: perk.icon, label: perk.label });
+                }
+              }
+              for (const addon of m.unlocked_addons) {
+                if (!seenF.has(addon)) {
+                  seenF.add(addon);
+                  cumFeatures.push({
+                    icon: addon === "stock_footage" ? "🎞️" : addon === "ai_voice" ? "🤖" : addon === "expedited" ? "⚡" : addon === "brief_templates" ? "📝" : addon === "professional_color_grading" ? "🎨" : addon === "charity_choice" ? "💝" : "🎁",
+                    label: addon.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+                  });
+                }
+              }
+              if (m.landscape_unlocked && !seenF.has("landscape")) {
+                seenF.add("landscape");
+                cumFeatures.push({ icon: "🖥️", label: "16:9 landscape" });
+              }
+              if (m.dual_format_free && !seenF.has("dual_format")) {
+                seenF.add("dual_format");
+                cumFeatures.push({ icon: "🎬", label: "Dual format free" });
+              }
+              if (m.custom_requests_unlocked && !seenF.has("custom_requests")) {
+                seenF.add("custom_requests");
+                cumFeatures.push({ icon: "✏️", label: "Custom requests" });
+              }
+              for (const perk of m.perks) {
+                if (perk.label.includes("discount")) continue;
+                if (perk.category === "support" && !seenS.has(perk.label)) {
+                  seenS.add(perk.label);
+                  cumSupport.push(perk);
+                }
+              }
+            }
+            cumFeatures.push({ icon: "⏱️", label: `+${i * 5}s duration bonus` });
           }
 
           return (
@@ -244,6 +309,14 @@ export default function RewardsTracker({
                       )}
                     </div>
                   </div>
+                  {i > 0 && (
+                    <button
+                      onClick={() => toggleExpand(ms.id)}
+                      className="text-[10px] uppercase tracking-wider text-cream-31 hover:text-cream transition-colors shrink-0 self-start mt-1"
+                    >
+                      {expandedTiers.has(ms.id) ? "▾ Hide package" : "▸ Full package"}
+                    </button>
+                  )}
                 </div>
 
                 {/* Progress bar — next tier to unlock */}
@@ -357,6 +430,59 @@ export default function RewardsTracker({
                     </div>
                   )}
                 </div>
+
+                {/* Expanded cumulative package */}
+                {i > 0 && expandedTiers.has(ms.id) && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <p className="text-[10px] uppercase tracking-widest font-medium text-cream-31 mb-3">
+                      Complete package at {ms.tier_name}
+                    </p>
+                    <p className="text-xs text-cream-31 mb-3 italic">
+                      Everything from previous tiers carries over.
+                    </p>
+                    <div className={`space-y-3 ${isLocked ? "opacity-50" : ""}`}>
+                      {cumRecipes.length > 0 && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest font-medium text-accent/70 mb-1.5">All Recipes</p>
+                          <div className="flex flex-wrap gap-2">
+                            {cumRecipes.map((r) => (
+                              <div key={r.label} className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-accent/5 border-accent/10 text-accent/70">
+                                <span className="text-base">{r.icon}</span>
+                                <span className="text-sm font-medium">{r.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {cumFeatures.length > 0 && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest font-medium text-lime/70 mb-1.5">All Features</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {cumFeatures.map((f) => (
+                              <span key={f.label} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-lime/5 text-lime/70">
+                                <span>{f.icon}</span>
+                                {f.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {cumSupport.length > 0 && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest font-medium text-cream-31 mb-1.5">All Support</p>
+                          <div className="space-y-1 border-l-2 pl-3 border-cream-20">
+                            {cumSupport.map((s) => (
+                              <div key={s.label} className="flex items-center gap-2">
+                                <span className="text-sm">{s.icon}</span>
+                                <span className="text-sm text-cream-61">{s.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
               </div>
             </div>

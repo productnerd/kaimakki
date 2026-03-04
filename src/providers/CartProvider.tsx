@@ -18,6 +18,7 @@ export type CartItem = {
   recipe_id: string;
   recipe_name?: string;
   recipe_slug?: string;
+  recipe_type?: string;
   price_cents?: number;
   intake_responses: Record<string, string> | null;
   notes: string | null;
@@ -28,12 +29,14 @@ export type CartItem = {
   additional_aspect_ratio: string | null;
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
+  recipe_mode: string;
 };
 
 export type AddItemExtras = {
   needs_additional_format?: boolean;
   needs_stock_footage?: boolean;
   needs_ai_voice?: boolean;
+  recipe_mode?: "donkey" | "creative";
 };
 
 export type CartItemWithDiscount = CartItem & {
@@ -53,6 +56,8 @@ type CartContextType = {
   updateItem: (itemId: string, updates: Partial<CartItem>) => Promise<void>;
   clearCart: () => Promise<void>;
   itemCount: number;
+  videoItemCount: number;
+  isFirstTimeBuyer: boolean;
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
@@ -71,6 +76,8 @@ const CartContext = createContext<CartContextType>({
   updateItem: async () => {},
   clearCart: async () => {},
   itemCount: 0,
+  videoItemCount: 0,
+  isFirstTimeBuyer: false,
   isOpen: false,
   openCart: () => {},
   closeCart: () => {},
@@ -85,17 +92,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [approvedCount, setApprovedCount] = useState(0);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [sessionRecipeIds, setSessionRecipeIds] = useState<{ id: string; slug: string }[]>([]);
   const prevMaxTierRef = useRef(0);
   const { user } = useAuth();
   const supabase = createClient();
 
-  // Fetch unlock milestones once
+  const isFirstTimeBuyer = lifetimeCount === 0;
+
+  // Fetch unlock milestones + session recipe IDs once
   useEffect(() => {
     supabase
       .from("unlock_milestones")
       .select("*")
       .order("min_videos", { ascending: true })
       .then(({ data }) => setMilestones((data ?? []) as Milestone[]));
+
+    supabase
+      .from("video_recipes")
+      .select("id, slug")
+      .eq("recipe_type", "session")
+      .then(({ data }) => setSessionRecipeIds(data ?? []));
   }, [supabase]);
 
   // Fetch user's video counts
@@ -134,18 +150,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .from("cart_items")
       .select(`
         *,
-        video_recipes (name, slug, price_cents)
+        video_recipes (name, slug, price_cents, recipe_type, creative_surcharge_percent)
       `)
       .eq("user_id", user.id)
       .order("created_at");
 
     const mapped = (data || []).map((item: Record<string, unknown>) => {
       const recipe = item.video_recipes as Record<string, unknown> | null;
+      const rawPrice = recipe?.price_cents as number | undefined;
+      const surcharge = (recipe?.creative_surcharge_percent as number) ?? 25;
+      const itemMode = (item.recipe_mode as string) ?? "donkey";
+      const effectivePrice = itemMode === "creative" && rawPrice
+        ? Math.round(rawPrice * (1 + surcharge / 100))
+        : rawPrice;
       return {
         ...item,
         recipe_name: recipe?.name as string | undefined,
         recipe_slug: recipe?.slug as string | undefined,
-        price_cents: recipe?.price_cents as number | undefined,
+        recipe_type: recipe?.recipe_type as string | undefined,
+        price_cents: effectivePrice,
       };
     }) as CartItem[];
 
@@ -157,6 +180,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     fetchCart();
   }, [fetchCart]);
 
+  const sessionRecipeIdSet = new Set(sessionRecipeIds.map((s) => s.id));
+  const videoItems = items.filter((i) => !sessionRecipeIdSet.has(i.recipe_id));
+  const sessionItems = items.filter((i) => sessionRecipeIdSet.has(i.recipe_id));
+  const videoItemCount = videoItems.length;
+
   function getDiscountForCount(count: number): number {
     let pct = 0;
     for (const ms of milestones) {
@@ -166,6 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   // Optimized discount: assign highest discount % to the most expensive items
+  // Only apply discounts to video items, not sessions
   const pricedItems: CartItemWithDiscount[] = (() => {
     if (items.length === 0 || milestones.length === 0) {
       return items.map((item) => ({
@@ -175,8 +204,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    // 1. Collect the discount slots earned by each cart position (based on approved count)
-    const discountSlots: number[] = items.map((_, index) => {
+    // 1. Collect the discount slots earned by each video cart position (based on approved count)
+    const discountSlots: number[] = videoItems.map((_, index) => {
       const videoNumber = approvedCount + index + 1;
       return getDiscountForCount(videoNumber);
     });
@@ -184,22 +213,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // 2. Sort slots descending (highest discounts first)
     const sortedSlots = [...discountSlots].sort((a, b) => b - a);
 
-    // 3. Sort items by price descending, preserving original index
-    const indexed = items.map((item, i) => ({ item, origIndex: i, price: item.price_cents ?? 0 }));
+    // 3. Sort video items by price descending, preserving original index
+    const indexed = videoItems.map((item, i) => ({ item, origIndex: i, price: item.price_cents ?? 0 }));
     const byPrice = [...indexed].sort((a, b) => b.price - a.price);
 
     // 4. Assign: highest discount slot → most expensive item
-    const assignedPcts = new Array<number>(items.length).fill(0);
+    const assignedPcts = new Array<number>(videoItems.length).fill(0);
     byPrice.forEach((entry, rank) => {
       assignedPcts[entry.origIndex] = sortedSlots[rank] ?? 0;
     });
 
-    return items.map((item, i) => {
+    // Build priced items: videos with discounts, sessions at €0
+    const pricedVideos = videoItems.map((item, i) => {
       const pct = assignedPcts[i];
       const base = item.price_cents ?? 0;
       const discounted = Math.round(base * (1 - pct / 100));
       return { ...item, discount_pct: pct, discounted_price_cents: discounted };
     });
+
+    const pricedSessions = sessionItems.map((item) => ({
+      ...item,
+      discount_pct: 0,
+      discounted_price_cents: 0,
+    }));
+
+    return [...pricedVideos, ...pricedSessions];
   })();
 
   // Detect when a new tier is crossed and show toast
@@ -217,6 +255,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     prevMaxTierRef.current = maxPct;
   }, [items.length, milestones, pricedItems]);
+
+  async function ensureSessionItems() {
+    if (!user || sessionRecipeIds.length === 0) return;
+    // Check if sessions are already in cart
+    const existingSessionIds = new Set(sessionItems.map((i) => i.recipe_id));
+    const missing = sessionRecipeIds.filter((s) => !existingSessionIds.has(s.id));
+    if (missing.length === 0) return;
+
+    for (const session of missing) {
+      await supabase.from("cart_items").insert({
+        user_id: user.id,
+        recipe_id: session.id,
+        primary_platform: "n/a",
+        primary_aspect_ratio: "n/a",
+        needs_additional_format: false,
+        needs_stock_footage: false,
+        needs_ai_voice: false,
+      });
+    }
+  }
+
+  async function removeSessionItems() {
+    if (!user || sessionItems.length === 0) return;
+    for (const item of sessionItems) {
+      await supabase.from("cart_items").delete().eq("id", item.id);
+    }
+  }
 
   async function addItem(recipeId: string, extras?: AddItemExtras) {
     if (!user) return;
@@ -266,19 +331,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_additional_format: extras?.needs_additional_format ?? false,
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
+        recipe_mode: extras?.recipe_mode ?? "donkey",
       })
       .select()
       .single();
 
     if (data) {
+      // Auto-add session items for first-time buyers
+      if (isFirstTimeBuyer && sessionItems.length === 0) {
+        await ensureSessionItems();
+      }
       await fetchCart();
       setIsOpen(true);
     }
   }
 
   async function removeItem(itemId: string) {
+    // Don't allow removing session items directly
+    const item = items.find((i) => i.id === itemId);
+    if (item && sessionRecipeIdSet.has(item.recipe_id)) return;
+
     await supabase.from("cart_items").delete().eq("id", itemId);
-    setItems((prev) => prev.filter((i) => i.id !== itemId));
+    const remaining = items.filter((i) => i.id !== itemId);
+    setItems(remaining);
+
+    // If no video items left, remove session items too
+    const remainingVideos = remaining.filter((i) => !sessionRecipeIdSet.has(i.recipe_id));
+    if (remainingVideos.length === 0 && isFirstTimeBuyer) {
+      await removeSessionItems();
+      setItems([]);
+    }
   }
 
   async function updateItem(itemId: string, updates: Partial<CartItem>) {
@@ -308,6 +390,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateItem,
         clearCart,
         itemCount: items.length,
+        videoItemCount,
+        isFirstTimeBuyer,
         isOpen,
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),

@@ -20,11 +20,12 @@ type Recipe = {
   complexity: string;
   price_cents: number;
   turnaround_days: number;
-  max_output_seconds: number;
+  base_output_seconds: number;
   min_tier_videos: number;
-  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean }[] };
+  intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean; mode?: string; weHandleLabel?: string }[] };
   deliverables_description: string[];
   example_video_url: string | null;
+  creative_surcharge_percent: number;
 };
 
 type Bundle = {
@@ -161,6 +162,7 @@ export default function BuyVideosPage() {
         .from("video_recipes")
         .select("*")
         .eq("is_active", true)
+        .eq("recipe_type", "video")
         .order("sort_order"),
       supabase
         .from("unlock_milestones")
@@ -538,6 +540,7 @@ export default function BuyVideosPage() {
         userDiscountPct={userDiscountPct}
         unlockState={unlock}
         milestones={milestones}
+        approvedVideoCount={approvedCount}
       />
     </div>
   );

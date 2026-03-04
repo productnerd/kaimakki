@@ -6,16 +6,21 @@ import Button from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const SESSION_SLUGS = new Set(["strategy-session", "branding-session"]);
+const MIN_FIRST_ORDER_VIDEOS = 3;
+
 type GroupedItem = {
   key: string;
   recipe_name: string;
   recipe_slug: string;
+  recipe_type: string;
   price_cents: number;
   discounted_price_cents: number;
   discount_pct: number;
   needs_additional_format: boolean;
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
+  recipe_mode: string;
   ids: string[];
   quantity: number;
 };
@@ -33,7 +38,7 @@ function getExtrasTotal(g: {
 }
 
 export default function CartDrawer() {
-  const { items, pricedItems, isOpen, closeCart, removeItem, itemCount, toast, clearToast } = useCart();
+  const { items, pricedItems, isOpen, closeCart, removeItem, itemCount, videoItemCount, isFirstTimeBuyer, toast, clearToast } = useCart();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
@@ -50,7 +55,27 @@ export default function CartDrawer() {
   // Group priced items by recipe_id + extras + discount_pct
   const grouped: GroupedItem[] = [];
   for (const item of pricedItems) {
-    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.discount_pct}`;
+    const isSession = SESSION_SLUGS.has(item.recipe_slug ?? "");
+    if (isSession) {
+      // Sessions are never grouped — show each individually
+      grouped.push({
+        key: `session-${item.id}`,
+        recipe_name: item.recipe_name ?? "",
+        recipe_slug: item.recipe_slug ?? "",
+        recipe_type: item.recipe_type ?? "video",
+        price_cents: 0,
+        discounted_price_cents: 0,
+        discount_pct: 0,
+        needs_additional_format: false,
+        needs_stock_footage: false,
+        needs_ai_voice: false,
+        recipe_mode: "donkey",
+        ids: [item.id],
+        quantity: 1,
+      });
+      continue;
+    }
+    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.discount_pct}|${item.recipe_mode}`;
     const existing = grouped.find((g) => g.key === key);
     if (existing) {
       existing.ids.push(item.id);
@@ -60,29 +85,37 @@ export default function CartDrawer() {
         key,
         recipe_name: item.recipe_name ?? "",
         recipe_slug: item.recipe_slug ?? "",
+        recipe_type: item.recipe_type ?? "video",
         price_cents: item.price_cents ?? 0,
         discounted_price_cents: item.discounted_price_cents,
         discount_pct: item.discount_pct,
         needs_additional_format: item.needs_additional_format,
         needs_stock_footage: item.needs_stock_footage,
         needs_ai_voice: item.needs_ai_voice,
+        recipe_mode: item.recipe_mode ?? "donkey",
         ids: [item.id],
         quantity: 1,
       });
     }
   }
 
-  const subtotal = pricedItems.reduce(
-    (sum, item) => sum + item.discounted_price_cents + getExtrasTotal(item),
-    0
-  );
+  // Sort: video items first, sessions last
+  const videoGroups = grouped.filter((g) => g.recipe_type !== "session");
+  const sessionGroups = grouped.filter((g) => g.recipe_type === "session");
+  const sortedGroups = [...videoGroups, ...sessionGroups];
 
-  const subtotalBeforeDiscount = pricedItems.reduce(
-    (sum, item) => sum + (item.price_cents ?? 0) + getExtrasTotal(item),
-    0
-  );
+  const subtotal = pricedItems
+    .filter((i) => !SESSION_SLUGS.has(i.recipe_slug ?? ""))
+    .reduce((sum, item) => sum + item.discounted_price_cents + getExtrasTotal(item), 0);
+
+  const subtotalBeforeDiscount = pricedItems
+    .filter((i) => !SESSION_SLUGS.has(i.recipe_slug ?? ""))
+    .reduce((sum, item) => sum + (item.price_cents ?? 0) + getExtrasTotal(item), 0);
 
   const totalSaved = subtotalBeforeDiscount - subtotal;
+
+  const videosNeeded = isFirstTimeBuyer ? Math.max(0, MIN_FIRST_ORDER_VIDEOS - videoItemCount) : 0;
+  const canCheckout = videoItemCount > 0 && videosNeeded === 0;
 
   async function handleRemoveGroup(ids: string[]) {
     for (const id of ids) {
@@ -162,9 +195,23 @@ export default function CartDrawer() {
           </div>
         )}
 
+        {/* First-time buyer banner */}
+        {isFirstTimeBuyer && videoItemCount > 0 && (
+          <div className="mx-6 mt-4 bg-accent/10 border border-accent/30 rounded-brand px-4 py-3">
+            <p className="text-accent text-sm font-medium">
+              Your first order includes a free Strategy + Branding session!
+            </p>
+            {videosNeeded > 0 && (
+              <p className="text-cream-31 text-xs mt-1">
+                Add {videosNeeded} more video{videosNeeded > 1 ? "s" : ""} to unlock your first order.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Items */}
         <div className="flex-1 overflow-y-auto p-6">
-          {grouped.length === 0 ? (
+          {sortedGroups.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-cream-31 text-sm">Your cart is empty</p>
               <p className="text-cream-20 text-xs mt-1">
@@ -173,7 +220,8 @@ export default function CartDrawer() {
             </div>
           ) : (
             <div className="space-y-4">
-              {grouped.map((g) => {
+              {/* Video items */}
+              {videoGroups.map((g) => {
                 const unitTotal = g.discounted_price_cents + getExtrasTotal(g);
                 const unitFull = g.price_cents + getExtrasTotal(g);
                 const lineTotal = unitTotal * g.quantity;
@@ -193,19 +241,24 @@ export default function CartDrawer() {
                           )}
                           <span className="mr-1">{getRecipeIcon(g.recipe_slug)}</span>{g.recipe_name}
                         </h3>
-                        {(g.needs_additional_format || g.needs_stock_footage || g.needs_ai_voice) && (
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {g.needs_additional_format && (
-                              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
-                            )}
-                            {g.needs_stock_footage && (
-                              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+stock</span>
-                            )}
-                            {g.needs_ai_voice && (
-                              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+AI voice</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            g.recipe_mode === "creative"
+                              ? "text-accent bg-accent/10"
+                              : "text-cream-31 bg-cream-20/30"
+                          }`}>
+                            {g.recipe_mode === "creative" ? "🎨 Creative" : "🫏 Donkey"}
+                          </span>
+                          {g.needs_additional_format && (
+                            <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
+                          )}
+                          {g.needs_stock_footage && (
+                            <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+stock</span>
+                          )}
+                          {g.needs_ai_voice && (
+                            <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+AI voice</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
@@ -236,6 +289,31 @@ export default function CartDrawer() {
                   </div>
                 );
               })}
+
+              {/* Session items (free, non-removable) */}
+              {sessionGroups.length > 0 && (
+                <>
+                  <div className="border-t border-border/50 my-2" />
+                  {sessionGroups.map((g) => (
+                    <div
+                      key={g.key}
+                      className="rounded-brand p-4 border border-dashed border-accent/30 bg-accent/5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-cream text-sm">
+                            <span className="mr-1">{g.recipe_slug === "strategy-session" ? "🧠" : "🎨"}</span>
+                            {g.recipe_name}
+                          </h3>
+                        </div>
+                        <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded-full font-medium">
+                          Included free
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -257,8 +335,16 @@ export default function CartDrawer() {
                 &euro;{(subtotal / 100).toFixed(0)}
               </span>
             </div>
-            <Button className="w-full" size="lg" onClick={handleCheckout} loading={checkoutLoading}>
-              Proceed to checkout
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleCheckout}
+              loading={checkoutLoading}
+              disabled={!canCheckout}
+            >
+              {videosNeeded > 0
+                ? `Add ${videosNeeded} more video${videosNeeded > 1 ? "s" : ""}`
+                : "Proceed to checkout"}
             </Button>
           </div>
         )}

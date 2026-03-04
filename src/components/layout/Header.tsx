@@ -80,7 +80,7 @@ export default function Header() {
                 href="/pricing"
                 className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
               >
-                PRICING
+                LOYALTY PROGRAM
               </Link>
               <Link href="/auth/login">
                 <Button size="sm" className="uppercase tracking-wider text-xs">SIGN IN</Button>
@@ -143,7 +143,7 @@ export default function Header() {
                 RECIPES
               </Link>
               <Link href="/pricing" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
-                PRICING
+                LOYALTY PROGRAM
               </Link>
               <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
                 <Button size="sm" className="w-full uppercase tracking-wider text-xs">SIGN IN</Button>
