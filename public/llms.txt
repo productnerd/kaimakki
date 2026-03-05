@@ -25,6 +25,10 @@ You pay upfront. If you don't ship your footage or post the video within 30 days
 - Hospitality: restaurant showcases, menu videos, café and hotel content
 - Fitness & Wellness: transformations, workout tips, studio content
 - Events: recaps, teasers, promo reels for DJs, photographers, planners
+- Medicine: educational content, patient testimonials, practice branding
+- Artists & Craftsmen: process videos, portfolio showcases, behind-the-scenes
+- Sport: highlights, training content, event recaps
+- Fashion: launches, lookbooks, styling content
 
 ## Pages
 - Home: /
@@ -36,3 +40,7 @@ You pay upfront. If you don't ship your footage or post the video within 30 days
 - Hospitality Videos: /for/hospitality
 - Fitness & Wellness Videos: /for/fitness-wellness
 - Event Videos: /for/events
+- Medical Professional Videos: /for/medicine
+- Artists & Craftsmen Videos: /for/artists-craftsmen
+- Sport Videos: /for/sport
+- Fashion Videos: /for/fashion

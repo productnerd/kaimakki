@@ -64,6 +64,38 @@ export const VERTICALS: Record<string, VerticalMeta> = {
     metaTitle: "Video Templates for Events | Kaimakki Studio",
     metaDescription: "Professional short-form video templates for DJs, photographers, planners, and event pros. Recaps, teasers, and promo content.",
   },
+  "medicine": {
+    slug: "medicine",
+    name: "Medicine",
+    headline: "Video Templates for Medical Professionals",
+    subtitle: "Build trust before the first appointment. Show patients you know your stuff.",
+    metaTitle: "Video Templates for Medical Professionals | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for doctors, clinics, and health practitioners. Educational content, patient testimonials, and practice branding.",
+  },
+  "artists-craftsmen": {
+    slug: "artists-craftsmen",
+    name: "Artists & Craftsmen",
+    headline: "Video Templates for Artists & Craftsmen",
+    subtitle: "Show the process. Sell the craft. Let people watch you make things.",
+    metaTitle: "Video Templates for Artists & Craftsmen | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for makers, artists, and artisans. Process videos, portfolio showcases, and behind-the-scenes content.",
+  },
+  "sport": {
+    slug: "sport",
+    name: "Sport",
+    headline: "Video Templates for Sports & Athletes",
+    subtitle: "Highlights, recaps, and content that gets fans off the bench.",
+    metaTitle: "Video Templates for Sports & Athletes | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for athletes, teams, and sports brands. Highlights, training content, and event recaps.",
+  },
+  "fashion": {
+    slug: "fashion",
+    name: "Fashion",
+    headline: "Video Templates for Fashion Brands",
+    subtitle: "Lookbooks, drops, and content that makes people hit add to cart.",
+    metaTitle: "Video Templates for Fashion | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for fashion brands, designers, and stylists. Launches, lookbooks, and styling content.",
+  },
 };
 
 export const VERTICAL_SLUGS = Object.keys(VERTICALS);
