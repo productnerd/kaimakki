@@ -287,20 +287,6 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         {/* Mode toggle */}
         <div className="flex gap-2">
           <button
-            onClick={() => setMode("donkey")}
-            className={`flex-1 p-3 rounded-brand border transition-colors text-left ${
-              mode === "donkey"
-                ? "border-accent/50 bg-accent/5"
-                : "border-border bg-background/50 hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span>🫏</span>
-              <span className={`text-sm font-medium ${mode === "donkey" ? "text-cream" : "text-cream-61"}`}>Donkey Mode</span>
-            </div>
-            <p className="text-xs text-cream-31">You tell us exactly what to do</p>
-          </button>
-          <button
             onClick={() => setMode("creative")}
             className={`flex-1 p-3 rounded-brand border transition-colors text-left ${
               mode === "creative"
@@ -309,11 +295,26 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             }`}
           >
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span>🎨</span>
-              <span className={`text-sm font-medium ${mode === "creative" ? "text-cream" : "text-cream-61"}`}>Creative Mode</span>
+              <span>🎬</span>
+              <span className={`text-sm font-medium ${mode === "creative" ? "text-cream" : "text-cream-61"}`}>Full Production</span>
               <span className="text-[9px] uppercase tracking-wider bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">Recommended</span>
             </div>
-            <p className="text-xs text-cream-31">We handle the creative direction (+{creativeSurcharge}%)</p>
+            <p className="text-xs text-cream-31">We handle the creative direction</p>
+          </button>
+          <button
+            onClick={() => setMode("donkey")}
+            className={`flex-1 p-3 rounded-brand border transition-colors text-left ${
+              mode === "donkey"
+                ? "border-accent/50 bg-accent/5"
+                : "border-border bg-background/50 hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span>🫏</span>
+              <span className={`text-sm font-medium ${mode === "donkey" ? "text-cream" : "text-cream-61"}`}>Donkey Mode</span>
+              <span className="text-[9px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">-{creativeSurcharge}% &minus;&euro;{Math.round(rawBase * creativeSurcharge / 100)}</span>
+            </div>
+            <p className="text-xs text-cream-31">You tell us exactly what to do</p>
           </button>
         </div>
 

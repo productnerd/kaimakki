@@ -276,7 +276,7 @@ export default function CartDrawer() {
                               ? "text-accent bg-accent/10"
                               : "text-cream-31 bg-cream-20/30"
                           }`}>
-                            {g.recipe_mode === "creative" ? "🎨 Creative" : "🫏 Donkey"}
+                            {g.recipe_mode === "creative" ? "🎬 Full Production" : "🫏 Donkey"}
                           </span>
                           {g.selected_use_case && (
                             <span className="text-[10px] text-cream-61 bg-cream-20/30 px-1.5 py-0.5 rounded-full">
