@@ -28,6 +28,7 @@ type Recipe = {
   example_video_url: string | null;
   creative_surcharge_percent: number;
   example_urls: string[];
+  recipe_use_cases: { id: string; name: string }[];
 };
 
 type Bundle = {
@@ -46,7 +47,7 @@ const BUNDLES: Bundle[] = [
     items: [
       { recipeId: "6982115e-5a12-4b39-879b-685f83347a99", recipeName: "Talking Head Reel", quantity: 2 },
       { recipeId: "7f1fd5c9-58d4-4934-a880-a1894575836a", recipeName: "Educational / Myth-Buster", quantity: 1 },
-      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Behind-the-Scenes", quantity: 1 },
+      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Visual Storytelling", quantity: 1 },
     ],
   },
   {
@@ -68,7 +69,7 @@ const BUNDLES: Bundle[] = [
       { recipeId: "7f1fd5c9-58d4-4934-a880-a1894575836a", recipeName: "Educational / Myth-Buster", quantity: 1 },
       { recipeId: "ba0b3663-6331-4f39-8057-48c03a8f2390", recipeName: "Product Showcase", quantity: 1 },
       { recipeId: "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce", recipeName: "Testimonial / Social Proof", quantity: 1 },
-      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Behind-the-Scenes", quantity: 1 },
+      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Visual Storytelling", quantity: 1 },
     ],
   },
 ];
@@ -173,7 +174,7 @@ export default function BuyVideosPage() {
     Promise.all([
       supabase
         .from("video_recipes")
-        .select("*")
+        .select("*, recipe_use_cases(id, name, sort_order)")
         .eq("is_active", true)
         .eq("recipe_type", "video")
         .order("sort_order"),
@@ -182,7 +183,12 @@ export default function BuyVideosPage() {
         .select("*")
         .order("min_videos"),
     ]).then(([recipesRes, milestonesRes]) => {
-      setRecipes(recipesRes.data || []);
+      const recipes = (recipesRes.data || []).map((r: Record<string, unknown>) => ({
+        ...r,
+        recipe_use_cases: ((r.recipe_use_cases as { id: string; name: string; sort_order: number }[]) || [])
+          .sort((a, b) => a.sort_order - b.sort_order),
+      }));
+      setRecipes(recipes as unknown as Recipe[]);
       setMilestones(milestonesRes.data || []);
       setLoading(false);
     });
@@ -222,11 +228,6 @@ export default function BuyVideosPage() {
 
     fetchBrandData();
   }, [user]);
-
-  async function handleAddToCart(e: React.MouseEvent, recipeId: string) {
-    e.stopPropagation();
-    await addItem(recipeId);
-  }
 
   // Compute unlock state from admin-approved count
   const unlock: UnlockState = getUnlockState(approvedCount, milestones);
@@ -353,9 +354,22 @@ export default function BuyVideosPage() {
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
                     <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>{recipe.name}
                   </h3>
-                  <p className="text-cream-61 text-xs mb-3 line-clamp-2">
+                  <p className="text-cream-61 text-xs mb-2 line-clamp-2">
                     {recipe.description}
                   </p>
+
+                  {recipe.recipe_use_cases.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {recipe.recipe_use_cases.map((uc) => (
+                        <span
+                          key={uc.id}
+                          className="text-[10px] text-cream-61 bg-background/80 border border-border px-1.5 py-0.5 rounded-full"
+                        >
+                          {uc.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {recipe.example_video_url && (
                     <div
@@ -386,7 +400,10 @@ export default function BuyVideosPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={(e) => handleAddToCart(e, recipe.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRecipe(recipe);
+                      }}
                     >
                       +
                     </Button>

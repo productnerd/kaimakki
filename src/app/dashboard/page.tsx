@@ -33,6 +33,7 @@ type Order = {
   estimated_delivery_date: string | null;
   delivered_at: string | null;
   completed_at: string | null;
+  selected_use_case: string | null;
   video_recipes: { name: string; slug: string; intake_form_schema: Record<string, unknown> | null } | null;
 };
 

@@ -20,6 +20,7 @@ type Recipe = {
   deliverables_description: string[];
   creative_surcharge_percent: number;
   example_urls: string[];
+  recipe_use_cases?: { id: string; name: string }[];
 };
 
 interface RecipeDetailModalProps {
@@ -52,6 +53,8 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   const [showDiscountInfo, setShowDiscountInfo] = useState(false);
   const [mode, setMode] = useState<"donkey" | "creative">("creative");
   const [showExamples, setShowExamples] = useState(false);
+  const [selectedUseCase, setSelectedUseCase] = useState<string | null>(null);
+  const [customUseCase, setCustomUseCase] = useState("");
 
   if (!recipe) return null;
 
@@ -95,14 +98,23 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
     setExtras((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  const useCases = recipe.recipe_use_cases ?? [];
+  const hasUseCases = useCases.length > 0;
+  const resolvedUseCase = selectedUseCase === "__other__" ? customUseCase.trim() : selectedUseCase;
+  const canAdd = !hasUseCases || (resolvedUseCase && resolvedUseCase.length > 0);
+
   async function handleAddToCart() {
+    if (hasUseCases && !canAdd) return;
     await addItem(recipe!.id, {
       needs_additional_format: extras.needs_additional_format ?? false,
       needs_stock_footage: extras.needs_stock_footage ?? false,
       needs_ai_voice: extras.needs_ai_voice ?? false,
       recipe_mode: mode,
+      selected_use_case: resolvedUseCase || undefined,
     });
     setExtras({});
+    setSelectedUseCase(null);
+    setCustomUseCase("");
     onClose();
   }
 
@@ -122,7 +134,12 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         </div>
         <button
           onClick={handleAddToCart}
-          className="w-12 h-12 rounded-brand border border-border bg-surface hover:border-accent/50 transition-colors flex items-center justify-center"
+          disabled={!canAdd}
+          className={`w-12 h-12 rounded-brand border transition-colors flex items-center justify-center ${
+            canAdd
+              ? "border-border bg-surface hover:border-accent/50"
+              : "border-border/50 bg-surface/50 opacity-40 cursor-not-allowed"
+          }`}
         >
           <span className="text-cream text-2xl font-bold leading-none">+</span>
         </button>
@@ -174,6 +191,57 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         <p className="text-cream-61 leading-relaxed">
           {recipe.description}
         </p>
+
+        {/* Use case selector */}
+        {hasUseCases && (
+          <div>
+            <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
+              What type of video?
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {useCases.map((uc) => (
+                <button
+                  key={uc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedUseCase(selectedUseCase === uc.name ? null : uc.name);
+                    setCustomUseCase("");
+                  }}
+                  className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                    selectedUseCase === uc.name
+                      ? "border-accent/50 bg-accent/10 text-cream"
+                      : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                  }`}
+                >
+                  {uc.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUseCase(selectedUseCase === "__other__" ? null : "__other__");
+                }}
+                className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                  selectedUseCase === "__other__"
+                    ? "border-accent/50 bg-accent/10 text-cream"
+                    : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                }`}
+              >
+                Other
+              </button>
+            </div>
+            {selectedUseCase === "__other__" && (
+              <input
+                type="text"
+                value={customUseCase}
+                onChange={(e) => setCustomUseCase(e.target.value.slice(0, 50))}
+                placeholder="Describe your video type..."
+                className="mt-2 w-full px-3 py-2 rounded-brand bg-background border border-border text-cream text-sm placeholder:text-cream-31 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                maxLength={50}
+              />
+            )}
+          </div>
+        )}
 
         {/* Examples toggle */}
         {recipe.example_urls && recipe.example_urls.length > 0 && (

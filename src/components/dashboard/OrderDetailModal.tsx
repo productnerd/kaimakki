@@ -27,6 +27,7 @@ type Order = {
   estimated_delivery_date: string | null;
   delivered_at: string | null;
   completed_at: string | null;
+  selected_use_case: string | null;
   video_recipes: { name: string; slug: string } | null;
 };
 
@@ -145,6 +146,12 @@ export default function OrderDetailModal({ order, onClose }: OrderDetailModalPro
             <p className="text-cream-31 text-xs">Aspect Ratio</p>
             <p className="text-cream">{order.primary_aspect_ratio}</p>
           </div>
+          {order.selected_use_case && (
+            <div>
+              <p className="text-cream-31 text-xs">Use Case</p>
+              <p className="text-cream">{order.selected_use_case}</p>
+            </div>
+          )}
           {order.needs_additional_format && order.additional_aspect_ratio && (
             <div>
               <p className="text-cream-31 text-xs">Additional Format</p>

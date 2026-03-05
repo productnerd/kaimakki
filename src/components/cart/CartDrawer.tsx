@@ -22,6 +22,7 @@ type GroupedItem = {
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
   recipe_mode: string;
+  selected_use_case?: string;
   ids: string[];
   quantity: number;
 };
@@ -79,7 +80,7 @@ export default function CartDrawer() {
       });
       continue;
     }
-    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.discount_pct}|${item.recipe_mode}`;
+    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.discount_pct}|${item.recipe_mode}|${item.selected_use_case ?? ""}`;
     const existing = grouped.find((g) => g.key === key);
     if (existing) {
       existing.ids.push(item.id);
@@ -97,6 +98,7 @@ export default function CartDrawer() {
         needs_stock_footage: item.needs_stock_footage,
         needs_ai_voice: item.needs_ai_voice,
         recipe_mode: item.recipe_mode ?? "donkey",
+        selected_use_case: item.selected_use_case,
         ids: [item.id],
         quantity: 1,
       });
@@ -150,6 +152,7 @@ export default function CartDrawer() {
             needs_additional_format: i.needs_additional_format,
             needs_stock_footage: i.needs_stock_footage,
             needs_ai_voice: i.needs_ai_voice,
+            selected_use_case: i.selected_use_case ?? null,
           })),
         });
       }
@@ -275,6 +278,11 @@ export default function CartDrawer() {
                           }`}>
                             {g.recipe_mode === "creative" ? "🎨 Creative" : "🫏 Donkey"}
                           </span>
+                          {g.selected_use_case && (
+                            <span className="text-[10px] text-cream-61 bg-cream-20/30 px-1.5 py-0.5 rounded-full">
+                              {g.selected_use_case}
+                            </span>
+                          )}
                           {g.needs_additional_format && (
                             <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
                           )}

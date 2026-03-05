@@ -32,6 +32,7 @@ export type CartItem = {
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
   recipe_mode: string;
+  selected_use_case?: string;
 };
 
 export type AddItemExtras = {
@@ -39,6 +40,7 @@ export type AddItemExtras = {
   needs_stock_footage?: boolean;
   needs_ai_voice?: boolean;
   recipe_mode?: "donkey" | "creative";
+  selected_use_case?: string;
 };
 
 export type CartItemWithDiscount = CartItem & {
@@ -177,6 +179,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             needs_stock_footage: item.needs_stock_footage,
             needs_ai_voice: item.needs_ai_voice,
             recipe_mode: item.recipe_mode,
+            selected_use_case: item.selected_use_case ?? null,
           });
         }
         localStorage.removeItem(GUEST_CART_KEY);
@@ -208,6 +211,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         recipe_slug: recipe?.slug as string | undefined,
         recipe_type: recipe?.recipe_type as string | undefined,
         price_cents: effectivePrice,
+        selected_use_case: item.selected_use_case as string | undefined,
       };
     }) as CartItem[];
 
@@ -357,6 +361,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
         recipe_mode: mode,
+        selected_use_case: extras?.selected_use_case,
       };
 
       const updated = [...items, newItem];
@@ -412,6 +417,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
         recipe_mode: extras?.recipe_mode ?? "donkey",
+        selected_use_case: extras?.selected_use_case ?? null,
       })
       .select()
       .single();
