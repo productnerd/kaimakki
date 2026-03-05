@@ -40,6 +40,30 @@ export const VERTICALS: Record<string, VerticalMeta> = {
     metaTitle: "Video Templates for Service Businesses | Kaimakki Studio",
     metaDescription: "Professional short-form video templates for service businesses. Case studies, behind-the-scenes, and client testimonials.",
   },
+  "hospitality": {
+    slug: "hospitality",
+    name: "Hospitality",
+    headline: "Video Templates for Restaurants, Cafés & Hotels",
+    subtitle: "Mouth-watering content that fills seats and books rooms.",
+    metaTitle: "Video Templates for Hospitality | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for restaurants, cafés, and hotels. Showcase your space, menu, and atmosphere.",
+  },
+  "fitness-wellness": {
+    slug: "fitness-wellness",
+    name: "Fitness & Wellness",
+    headline: "Video Templates for Fitness & Wellness",
+    subtitle: "Transformations, tips, and motivation — edited to keep people watching.",
+    metaTitle: "Video Templates for Fitness & Wellness | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for gyms, coaches, and wellness studios. Transformation stories, workout tips, and brand content.",
+  },
+  "events": {
+    slug: "events",
+    name: "Events",
+    headline: "Video Templates for Event Professionals",
+    subtitle: "Turn every gig into a highlight reel that books the next one.",
+    metaTitle: "Video Templates for Events | Kaimakki Studio",
+    metaDescription: "Professional short-form video templates for DJs, photographers, planners, and event pros. Recaps, teasers, and promo content.",
+  },
 };
 
 export const VERTICAL_SLUGS = Object.keys(VERTICALS);

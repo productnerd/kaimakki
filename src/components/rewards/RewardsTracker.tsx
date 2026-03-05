@@ -99,6 +99,7 @@ export default function RewardsTracker({
           const isCurrent = isDashboard && i === currentMilestoneIndex;
           const isLocked = !isUnlocked;
           const isNext = isDashboard && nextMilestone?.id === ms.id;
+          const isRookie = !isDashboard && i === 0;
 
           // Determine border color based on discount
           const borderColor = isCurrent
@@ -222,15 +223,25 @@ export default function RewardsTracker({
             <div key={ms.id}>
               <div
                 className={`
-                  rounded-brand border p-5 transition-all duration-300
+                  rounded-brand border p-5 transition-all duration-300 relative
                   ${isCurrent
                     ? `bg-surface ${borderColor} ${glowClass}`
-                    : isUnlocked
-                      ? "bg-surface/80 border-border"
-                      : "bg-background/50 border-border/50"
+                    : isRookie
+                      ? "bg-surface/80 border-accent/30 animate-pulse-glow"
+                      : isUnlocked
+                        ? "bg-surface/80 border-border"
+                        : "bg-background/50 border-border/50"
                   }
                 `}
               >
+                {/* Pulsing dot — Rookie on pricing page */}
+                {isRookie && (
+                  <div className="absolute top-3 right-3">
+                    <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="absolute inset-0 w-2 h-2 rounded-full bg-accent animate-ping" style={{ animationDuration: "2s" }} />
+                  </div>
+                )}
+
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -240,9 +251,11 @@ export default function RewardsTracker({
                         relative w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0
                         ${isCurrent
                           ? "bg-accent/20 text-accent animate-breathe"
-                          : isUnlocked
-                            ? "bg-lime/20 text-lime"
-                            : "bg-surface text-cream-31 border border-border"
+                          : isRookie
+                            ? "bg-accent/20 text-accent"
+                            : isUnlocked
+                              ? "bg-lime/20 text-lime"
+                              : "bg-surface text-cream-31 border border-border"
                         }
                       `}
                     >
@@ -270,7 +283,7 @@ export default function RewardsTracker({
                       <div className="flex items-center gap-2">
                         <h3
                           className={`font-display font-bold text-lg ${
-                            isCurrent || isUnlocked
+                            isCurrent || isUnlocked || isRookie
                               ? "text-cream"
                               : "text-cream-61"
                           }`}
@@ -290,7 +303,7 @@ export default function RewardsTracker({
                       </div>
                       <p
                         className={`text-xs ${
-                          isLocked ? "text-cream-31" : "text-cream-61"
+                          isLocked && !isRookie ? "text-cream-31" : "text-cream-61"
                         }`}
                       >
                         {ms.min_videos} video{ms.min_videos !== 1 ? "s" : ""} posted
@@ -358,7 +371,7 @@ export default function RewardsTracker({
                 )}
 
                 {/* Categorized unlocks */}
-                <div className={`space-y-3 ${isLocked ? "opacity-50" : ""}`}>
+                <div className={`space-y-3 ${isLocked && !isRookie ? "opacity-50" : ""}`}>
                   {/* Recipes — accent mini cards */}
                   {recipes.length > 0 && (
                     <div>
@@ -371,7 +384,7 @@ export default function RewardsTracker({
                               flex items-center gap-2 px-3 py-2 rounded-xl border
                               ${isCurrent
                                 ? "bg-accent/10 border-accent/20 text-accent"
-                                : isUnlocked
+                                : isUnlocked || isRookie
                                   ? "bg-accent/10 border-accent/20 text-accent/80"
                                   : "bg-background/50 border-border text-cream-31"
                               }
@@ -397,7 +410,7 @@ export default function RewardsTracker({
                               inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full
                               ${isCurrent
                                 ? "bg-lime/10 text-lime"
-                                : isUnlocked
+                                : isUnlocked || isRookie
                                   ? "bg-lime/10 text-lime/80"
                                   : "bg-background text-cream-31"
                               }
@@ -416,12 +429,12 @@ export default function RewardsTracker({
                     <div>
                       <p className="text-[9px] uppercase tracking-widest font-medium text-cream-31 mb-1.5">Support</p>
                       <div className={`space-y-1 border-l-2 pl-3 ${
-                        isCurrent ? "border-cream-31" : "border-cream-20"
+                        isCurrent || isRookie ? "border-cream-31" : "border-cream-20"
                       }`}>
                         {supportPerks.map((s) => (
                           <div key={s.label} className="flex items-center gap-2">
                             <span className="text-sm">{s.icon}</span>
-                            <span className={`text-sm ${isCurrent || isUnlocked ? "text-cream-78" : "text-cream-31"}`}>
+                            <span className={`text-sm ${isCurrent || isUnlocked || isRookie ? "text-cream-78" : "text-cream-31"}`}>
                               {s.label}
                             </span>
                           </div>

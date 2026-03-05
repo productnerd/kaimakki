@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { useCart } from "@/providers/CartProvider";
@@ -31,7 +31,7 @@ type Recipe = {
   deliverables_description: string[];
   creative_surcharge_percent: number;
   example_urls: string[];
-  recipe_use_cases?: { id: string; name: string }[];
+  recipe_use_cases?: { id: string; name: string; isRecommended?: boolean }[];
   recipe_addons?: RecipeAddon[];
 };
 
@@ -67,6 +67,14 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   const [showExamples, setShowExamples] = useState(false);
   const [selectedUseCase, setSelectedUseCase] = useState<string | null>(null);
   const [customUseCase, setCustomUseCase] = useState("");
+
+  // Clear use case selection when switching to Full Production
+  useEffect(() => {
+    if (mode === "creative") {
+      setSelectedUseCase(null);
+      setCustomUseCase("");
+    }
+  }, [mode]);
 
   if (!recipe) return null;
 
@@ -295,45 +303,63 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           {recipe.description}
         </p>
 
-        {/* Use case selector */}
+        {/* Use case selector / display */}
         {hasUseCases && (
           <div>
             <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
               What type of video?
+              {mode === "donkey" && (
+                <span className="font-body font-normal normal-case tracking-normal text-cream-31 ml-2">· Select one</span>
+              )}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {useCases.map((uc) => (
-                <button
-                  key={uc.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedUseCase(selectedUseCase === uc.name ? null : uc.name);
-                    setCustomUseCase("");
-                  }}
-                  className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
-                    selectedUseCase === uc.name
-                      ? "border-accent/50 bg-accent/10 text-cream"
-                      : "border-border bg-background/50 text-cream-61 hover:border-border/80"
-                  }`}
-                >
-                  {uc.name}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedUseCase(selectedUseCase === "__other__" ? null : "__other__");
-                }}
-                className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
-                  selectedUseCase === "__other__"
-                    ? "border-accent/50 bg-accent/10 text-cream"
-                    : "border-border bg-background/50 text-cream-61 hover:border-border/80"
-                }`}
-              >
-                Other
-              </button>
+              {mode === "donkey" ? (
+                <>
+                  {useCases.map((uc) => (
+                    <button
+                      key={uc.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedUseCase(selectedUseCase === uc.name ? null : uc.name);
+                        setCustomUseCase("");
+                      }}
+                      className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                        selectedUseCase === uc.name
+                          ? "border-accent/50 bg-accent/10 text-cream"
+                          : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                      }`}
+                    >
+                      {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                      {uc.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedUseCase(selectedUseCase === "__other__" ? null : "__other__");
+                    }}
+                    className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                      selectedUseCase === "__other__"
+                        ? "border-accent/50 bg-accent/10 text-cream"
+                        : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                    }`}
+                  >
+                    Other
+                  </button>
+                </>
+              ) : (
+                useCases.map((uc) => (
+                  <span
+                    key={uc.id}
+                    className="text-sm px-3 py-1.5 rounded-brand border border-border bg-background/50 text-cream-61"
+                  >
+                    {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                    {uc.name}
+                  </span>
+                ))
+              )}
             </div>
-            {selectedUseCase === "__other__" && (
+            {mode === "donkey" && selectedUseCase === "__other__" && (
               <input
                 type="text"
                 value={customUseCase}

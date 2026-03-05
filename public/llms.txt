@@ -22,6 +22,9 @@ You pay upfront. If you don't ship your footage or post the video within 30 days
 - Personal Brands: tips, stories, opinion content
 - Product Businesses: launches, demos, unboxings
 - Service Businesses: case studies, behind-the-scenes, testimonials
+- Hospitality: restaurant showcases, menu videos, café and hotel content
+- Fitness & Wellness: transformations, workout tips, studio content
+- Events: recaps, teasers, promo reels for DJs, photographers, planners
 
 ## Pages
 - Home: /
@@ -30,3 +33,6 @@ You pay upfront. If you don't ship your footage or post the video within 30 days
 - Personal Brand Videos: /for/personal-brands
 - Product Business Videos: /for/product-businesses
 - Service Business Videos: /for/service-businesses
+- Hospitality Videos: /for/hospitality
+- Fitness & Wellness Videos: /for/fitness-wellness
+- Event Videos: /for/events

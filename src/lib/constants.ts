@@ -5,6 +5,11 @@ export const RECIPE_ICONS: Record<string, string> = {
   "testimonial-social-proof": "⭐",
   "behind-the-scenes": "🎬",
   "podcast-clipping": "🎧",
+  "pov-come-with-me": "👀",
+  "timelapse": "⏱️",
+  "screen-recording-voiceover": "🖥️",
+  "announcement-teaser": "📣",
+  "carousel-style-video": "🎠",
 };
 
 export function getRecipeIcon(slug: string | null | undefined): string {

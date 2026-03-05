@@ -234,6 +234,18 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Pick three CTA for visitors */}
+      {!user && (
+        <div className="text-center mb-8">
+          <h2 className="font-display font-bold text-2xl text-cream">
+            Pick three.
+          </h2>
+          <p className="text-cream-31 text-sm mt-1">
+            Your first order starts at three videos. Choose your recipes below.
+          </p>
+        </div>
+      )}
+
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {loading
