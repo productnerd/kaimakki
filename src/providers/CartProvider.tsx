@@ -31,6 +31,7 @@ export type CartItem = {
   additional_aspect_ratio: string | null;
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
+  needs_expedited: boolean;
   recipe_mode: string;
   selected_use_case?: string;
 };
@@ -39,6 +40,7 @@ export type AddItemExtras = {
   needs_additional_format?: boolean;
   needs_stock_footage?: boolean;
   needs_ai_voice?: boolean;
+  needs_expedited?: boolean;
   recipe_mode?: "donkey" | "creative";
   selected_use_case?: string;
 };
@@ -360,6 +362,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         additional_aspect_ratio: null,
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
+        needs_expedited: extras?.needs_expedited ?? false,
         recipe_mode: mode,
         selected_use_case: extras?.selected_use_case,
       };
@@ -403,6 +406,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           setTimeout(() => setToast(null), 4000);
           return;
         }
+        if (extras?.needs_expedited && !unlock.unlockedAddons.has("expedited")) {
+          setToast("Expedited delivery isn't unlocked yet.");
+          setTimeout(() => setToast(null), 4000);
+          return;
+        }
       }
     }
 
@@ -416,6 +424,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_additional_format: extras?.needs_additional_format ?? false,
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
+        needs_expedited: extras?.needs_expedited ?? false,
         recipe_mode: extras?.recipe_mode ?? "donkey",
         selected_use_case: extras?.selected_use_case ?? null,
       })

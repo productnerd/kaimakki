@@ -28,6 +28,7 @@ type Recipe = {
   creative_surcharge_percent: number;
   example_urls: string[];
   recipe_use_cases: { id: string; name: string }[];
+  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
 };
 
 type Bundle = {
@@ -169,7 +170,7 @@ export default function HomePage() {
     const supabase = createClient();
     supabase
       .from("video_recipes")
-      .select("*, recipe_use_cases(id, name, sort_order)")
+      .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, unlock_addon_key, unlock_requires_landscape, sort_order)")
       .eq("is_active", true)
       .eq("recipe_type", "video")
       .order("sort_order")

@@ -17,10 +17,14 @@ export function generateMetadata({
   return {
     title: v.metaTitle,
     description: v.metaDescription,
+    alternates: {
+      canonical: `https://productnerd.github.io/kaimakki/for/${params.vertical}`,
+    },
     openGraph: {
       title: v.metaTitle,
       description: v.metaDescription,
       type: "website",
+      url: `https://productnerd.github.io/kaimakki/for/${params.vertical}`,
     },
   };
 }

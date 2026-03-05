@@ -6,6 +6,17 @@ import Badge from "@/components/ui/Badge";
 import { useCart } from "@/providers/CartProvider";
 import { type UnlockState, type Milestone, getAddonUnlockMilestone, getEffectiveDuration, getTierIndex } from "@/lib/unlocks";
 
+type RecipeAddon = {
+  id: string;
+  addon_key: string;
+  label: string;
+  sublabel: string | null;
+  price_cents: number;
+  unlock_addon_key: string | null;
+  unlock_requires_landscape: boolean;
+  sort_order: number;
+};
+
 type Recipe = {
   id: string;
   slug: string;
@@ -21,6 +32,7 @@ type Recipe = {
   creative_surcharge_percent: number;
   example_urls: string[];
   recipe_use_cases?: { id: string; name: string }[];
+  recipe_addons?: RecipeAddon[];
 };
 
 interface RecipeDetailModalProps {
@@ -31,12 +43,12 @@ interface RecipeDetailModalProps {
   milestones?: Milestone[];
 }
 
-const EXTRAS = [
-  { key: "needs_additional_format", label: "Additional aspect ratio", sublabel: "e.g. 9:16 + 16:9", price: 20, addonKey: null },
-  { key: "needs_stock_footage", label: "Stock footage", sublabel: "We source relevant b-roll", price: 15, addonKey: "stock_footage" },
-  { key: "needs_ai_voice", label: "AI voiceover", sublabel: "Natural-sounding narration", price: 25, addonKey: "ai_voice" },
-  { key: "needs_expedited", label: "Expedited delivery", sublabel: "Rush it — 2 business days", price: 40, addonKey: "expedited" },
-] as const;
+const ADDON_KEY_TO_CART_FIELD: Record<string, string> = {
+  additional_format: "needs_additional_format",
+  stock_footage: "needs_stock_footage",
+  ai_voice: "needs_ai_voice",
+  expedited: "needs_expedited",
+};
 
 function getExampleEmbedUrl(url: string): string {
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^/?]+)/);
@@ -58,36 +70,53 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
 
   if (!recipe) return null;
 
-  function isExtraUnlocked(extra: typeof EXTRAS[number]): boolean {
-    if (!unlockState) return true; // no unlock data = show everything
-    if (extra.key === "needs_additional_format") return unlockState.landscapeUnlocked;
-    if (extra.addonKey) return unlockState.unlockedAddons.has(extra.addonKey);
+  const addons = [...(recipe.recipe_addons ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const tierOverrides = unlockState?.addonPriceOverrides ?? {};
+
+  function isAddonUnlocked(addon: RecipeAddon): boolean {
+    if (!unlockState) return true;
+    if (addon.unlock_requires_landscape) return unlockState.landscapeUnlocked;
+    if (addon.unlock_addon_key) return unlockState.unlockedAddons.has(addon.unlock_addon_key);
     return true;
   }
 
-  function getExtraUnlockLabel(extra: typeof EXTRAS[number]): string {
-    if (extra.key === "needs_additional_format") {
-      // Find the milestone that unlocks landscape
+  function getAddonUnlockLabel(addon: RecipeAddon): string {
+    if (addon.unlock_requires_landscape) {
       const ms = milestones.find((m) => m.landscape_unlocked);
       return ms ? `Unlocks at ${ms.tier_name} (${ms.min_videos} videos)` : "Locked";
     }
-    if (extra.addonKey) {
-      const ms = getAddonUnlockMilestone(extra.addonKey, milestones);
+    if (addon.unlock_addon_key) {
+      const ms = getAddonUnlockMilestone(addon.unlock_addon_key, milestones);
       return ms ? `Unlocks at ${ms.tier_name} (${ms.min_videos} videos)` : "Locked";
     }
     return "Locked";
   }
 
-  // Effective duration = base + tier boost (+5s per tier)
+  function getEffectivePrice(addon: RecipeAddon): number {
+    if (addon.addon_key in tierOverrides) return tierOverrides[addon.addon_key];
+    return addon.price_cents;
+  }
+
+  function hasTierOverride(addon: RecipeAddon): boolean {
+    return addon.addon_key in tierOverrides && tierOverrides[addon.addon_key] !== addon.price_cents;
+  }
+
+  // Split addons: base price > 0 = Extras, base price = 0 = Preferences
+  // Exception: if tier override made a paid addon free, it stays in Extras
+  const paidAddons = addons.filter((a) => a.price_cents > 0);
+  const freeAddons = addons.filter((a) => a.price_cents === 0);
+
   const tierIndex = unlockState ? getTierIndex(unlockState.tier, milestones) : 0;
   const effectiveMaxDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
   const hasDurationBoost = tierIndex > 0;
 
   const creativeSurcharge = recipe.creative_surcharge_percent ?? 25;
-  const extrasTotal = EXTRAS.reduce(
-    (sum, e) => sum + (extras[e.key] && isExtraUnlocked(e) ? e.price : 0),
-    0
-  );
+  const cartFieldKey = (addon: RecipeAddon) => ADDON_KEY_TO_CART_FIELD[addon.addon_key] ?? addon.addon_key;
+  const extrasTotal = addons.reduce((sum, a) => {
+    const field = cartFieldKey(a);
+    if (!extras[field] || !isAddonUnlocked(a)) return sum;
+    return sum + getEffectivePrice(a) / 100;
+  }, 0);
   const rawBase = recipe.price_cents / 100;
   const basePrice = mode === "creative" ? Math.round(rawBase * (1 + creativeSurcharge / 100)) : rawBase;
   const discountedBase = Math.round(basePrice * (1 - userDiscountPct / 100));
@@ -101,7 +130,8 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   const useCases = recipe.recipe_use_cases ?? [];
   const hasUseCases = useCases.length > 0;
   const resolvedUseCase = selectedUseCase === "__other__" ? customUseCase.trim() : selectedUseCase;
-  const canAdd = !hasUseCases || (resolvedUseCase && resolvedUseCase.length > 0);
+  // In Full Production (creative) mode, use case is optional
+  const canAdd = !hasUseCases || mode === "creative" || (resolvedUseCase && resolvedUseCase.length > 0);
 
   async function handleAddToCart() {
     if (hasUseCases && !canAdd) return;
@@ -109,6 +139,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
       needs_additional_format: extras.needs_additional_format ?? false,
       needs_stock_footage: extras.needs_stock_footage ?? false,
       needs_ai_voice: extras.needs_ai_voice ?? false,
+      needs_expedited: extras.needs_expedited ?? false,
       recipe_mode: mode,
       selected_use_case: resolvedUseCase || undefined,
     });
@@ -116,6 +147,78 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
     setSelectedUseCase(null);
     setCustomUseCase("");
     onClose();
+  }
+
+  function renderAddonRow(addon: RecipeAddon) {
+    const field = cartFieldKey(addon);
+    const unlocked = isAddonUnlocked(addon);
+    const effectivePrice = getEffectivePrice(addon);
+    const hasOverride = hasTierOverride(addon);
+
+    if (!unlocked) {
+      return (
+        <div
+          key={addon.id}
+          className="flex items-center justify-between p-3 rounded-brand border border-border bg-background/30 opacity-50"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-sm">🔒</span>
+            <div>
+              <span className="text-sm text-cream-31">{addon.label}</span>
+              <span className="text-[10px] text-accent ml-2">{getAddonUnlockLabel(addon)}</span>
+            </div>
+          </div>
+          <span className="text-sm font-medium text-cream-31">+&euro;{(addon.price_cents / 100).toFixed(0)}</span>
+        </div>
+      );
+    }
+
+    return (
+      <label
+        key={addon.id}
+        className={`flex items-center justify-between p-3 rounded-brand border cursor-pointer transition-colors ${
+          extras[field]
+            ? "border-accent/50 bg-accent/5"
+            : "border-border bg-background/50 hover:border-border/80"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={!!extras[field]}
+            onChange={() => toggleExtra(field)}
+            className="sr-only"
+          />
+          <div
+            className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+              extras[field]
+                ? "border-accent bg-accent"
+                : "border-cream-31"
+            }`}
+          >
+            {extras[field] && (
+              <svg className="w-2.5 h-2.5 text-brown" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4}>
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <span className="text-sm text-cream">{addon.label}</span>
+            {addon.sublabel && <span className="text-xs text-cream-31 ml-2">{addon.sublabel}</span>}
+          </div>
+        </div>
+        <div className="text-right">
+          {hasOverride && (
+            <span className="text-xs text-cream-31 line-through mr-2">
+              +&euro;{(addon.price_cents / 100).toFixed(0)}
+            </span>
+          )}
+          <span className="text-sm font-medium text-cream">
+            {effectivePrice === 0 ? "Free" : `+\u20AC${(effectivePrice / 100).toFixed(0)}`}
+          </span>
+        </div>
+      </label>
+    );
   }
 
   const footerContent = (
@@ -164,13 +267,13 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               <span className="text-cream text-sm font-medium">{recipe.turnaround_days} days</span>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
-              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Filming</span>
+              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Filming Complexity</span>
               <Badge variant={recipe.filming_difficulty === "simple" ? "lime" : "accent"}>
                 {recipe.filming_difficulty}
               </Badge>
             </div>
             <div className="bg-background/50 rounded-brand p-3 border border-border text-center">
-              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Editing</span>
+              <span className="text-cream-31 text-[10px] uppercase tracking-wider block mb-1">Editing Complexity</span>
               <Badge variant={recipe.editing_difficulty === "simple" ? "lime" : "accent"}>
                 {recipe.editing_difficulty}
               </Badge>
@@ -239,6 +342,11 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
                 className="mt-2 w-full px-3 py-2 rounded-brand bg-background border border-border text-cream text-sm placeholder:text-cream-31 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 maxLength={50}
               />
+            )}
+            {mode === "creative" && (
+              <p className="text-cream-31 text-[11px] mt-2">
+                Leave blank and we&apos;ll pick the best format for you.
+              </p>
             )}
           </div>
         )}
@@ -387,108 +495,78 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           </div>
         </div>
 
-        {/* Extras */}
-        <div>
-          <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
-            Extras
-          </h3>
-          <div className="space-y-2">
-            {EXTRAS.map((extra) => {
-              const unlocked = isExtraUnlocked(extra);
-              if (!unlocked) {
-                return (
-                  <div
-                    key={extra.key}
-                    className="flex items-center justify-between p-3 rounded-brand border border-border bg-background/30 opacity-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm">🔒</span>
-                      <div>
-                        <span className="text-sm text-cream-31">{extra.label}</span>
-                        <span className="text-[10px] text-accent ml-2">{getExtraUnlockLabel(extra)}</span>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-cream-31">+&euro;{extra.price}</span>
-                  </div>
-                );
-              }
-              return (
-                <label
-                  key={extra.key}
-                  className={`flex items-center justify-between p-3 rounded-brand border cursor-pointer transition-colors ${
-                    extras[extra.key]
-                      ? "border-accent/50 bg-accent/5"
-                      : "border-border bg-background/50 hover:border-border/80"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={!!extras[extra.key]}
-                      onChange={() => toggleExtra(extra.key)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                        extras[extra.key]
-                          ? "border-accent bg-accent"
-                          : "border-cream-31"
-                      }`}
-                    >
-                      {extras[extra.key] && (
-                        <svg className="w-2.5 h-2.5 text-brown" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4}>
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-sm text-cream">{extra.label}</span>
-                      <span className="text-xs text-cream-31 ml-2">{extra.sublabel}</span>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-cream">+&euro;{extra.price}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Discount message */}
-        {unlockState?.nextMilestone && unlockState.nextMilestone.discount_percent > unlockState.discountPct ? (
-          <div className="flex items-center gap-2 bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
-            <span className="text-lime text-sm font-medium">
-              Get {unlockState.nextMilestone.discount_percent}% lifetime discount after posting your {unlockState.nextMilestone.min_videos}th video
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowDiscountInfo(!showDiscountInfo)}
-              className="relative flex-shrink-0 w-4 h-4 rounded-full border border-lime/50 text-lime text-[10px] font-bold flex items-center justify-center hover:bg-lime/10 transition-colors"
-            >
-              i
-            </button>
-          </div>
-        ) : !unlockState ? (
-          <div className="flex items-center gap-2 bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
-            <span className="text-lime text-sm font-medium">
-              Get 10% lifetime discount after posting your 6th video
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowDiscountInfo(!showDiscountInfo)}
-              className="relative flex-shrink-0 w-4 h-4 rounded-full border border-lime/50 text-lime text-[10px] font-bold flex items-center justify-center hover:bg-lime/10 transition-colors"
-            >
-              i
-            </button>
-          </div>
-        ) : null}
-        {showDiscountInfo && (
-          <div className="bg-surface border border-border rounded-brand p-4 text-sm text-cream-61 -mt-3">
-            Every new client takes time to set up — learning your brand, style, and preferences.
-            As we work together and refine the process, production gets faster and our margins improve.
-            Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
-            The more we collaborate, the cheaper it gets. Simple as that.
+        {/* Extras (paid addons) */}
+        {paidAddons.length > 0 && (
+          <div>
+            <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
+              Extras
+            </h3>
+            <div className="space-y-2">
+              {paidAddons.map(renderAddonRow)}
+            </div>
           </div>
         )}
+
+        {/* Preferences (free addons) */}
+        {freeAddons.length > 0 && (
+          <div>
+            <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
+              Preferences
+            </h3>
+            <div className="space-y-2">
+              {freeAddons.map(renderAddonRow)}
+            </div>
+          </div>
+        )}
+
+        {/* Discount message — accordion style */}
+        {unlockState?.nextMilestone && unlockState.nextMilestone.discount_percent > unlockState.discountPct ? (
+          <div className="bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lime text-sm font-medium">
+                Get {unlockState.nextMilestone.discount_percent}% lifetime discount after posting your {unlockState.nextMilestone.min_videos}th video
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDiscountInfo(!showDiscountInfo)}
+                className="flex-shrink-0 w-4 h-4 rounded-full border border-lime/50 text-lime text-[10px] font-bold flex items-center justify-center hover:bg-lime/10 transition-colors"
+              >
+                i
+              </button>
+            </div>
+            {showDiscountInfo && (
+              <p className="text-cream-31 text-[11px] mt-2 leading-relaxed">
+                Every new client takes time to set up — learning your brand, style, and preferences.
+                As we work together and refine the process, production gets faster and our margins improve.
+                Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
+                The more we collaborate, the cheaper it gets. Simple as that.
+              </p>
+            )}
+          </div>
+        ) : !unlockState ? (
+          <div className="bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lime text-sm font-medium">
+                Get 10% lifetime discount after posting your 6th video
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDiscountInfo(!showDiscountInfo)}
+                className="flex-shrink-0 w-4 h-4 rounded-full border border-lime/50 text-lime text-[10px] font-bold flex items-center justify-center hover:bg-lime/10 transition-colors"
+              >
+                i
+              </button>
+            </div>
+            {showDiscountInfo && (
+              <p className="text-cream-31 text-[11px] mt-2 leading-relaxed">
+                Every new client takes time to set up — learning your brand, style, and preferences.
+                As we work together and refine the process, production gets faster and our margins improve.
+                Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
+                The more we collaborate, the cheaper it gets. Simple as that.
+              </p>
+            )}
+          </div>
+        ) : null}
 
       </div>
     </Modal>

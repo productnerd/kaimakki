@@ -12,6 +12,7 @@ export type Milestone = {
   custom_requests_unlocked: boolean;
   support_level: string;
   perks: { label: string; icon: string; category?: string }[];
+  addon_price_overrides?: Record<string, number>;
 };
 
 export type UnlockState = {
@@ -29,6 +30,7 @@ export type UnlockState = {
   nextMilestone: Milestone | null;
   progressPct: number;
   allPerks: { label: string; icon: string; category?: string; inherited: boolean }[];
+  addonPriceOverrides: Record<string, number>;
 };
 
 /**
@@ -56,6 +58,7 @@ export function getUnlockState(
   let support = "chat";
   let currentMilestone: Milestone | null = null;
   let nextMilestone: Milestone | null = null;
+  const addonPriceOverrides: Record<string, number> = {};
 
   for (const ms of sorted) {
     if (lifetimeCount >= ms.min_videos) {
@@ -72,6 +75,10 @@ export function getUnlockState(
       for (const slug of ms.unlocked_recipe_slugs) recipeSlugs.add(slug);
       for (const addon of ms.unlocked_addons) addons.add(addon);
       for (const bundle of ms.bundles_unlocked) bundles.add(bundle);
+      // Merge addon price overrides (later milestones override earlier)
+      if (ms.addon_price_overrides) {
+        Object.assign(addonPriceOverrides, ms.addon_price_overrides);
+      }
     } else {
       // First milestone the user hasn't reached = next target
       if (!nextMilestone) nextMilestone = ms;
@@ -114,6 +121,7 @@ export function getUnlockState(
     nextMilestone,
     progressPct,
     allPerks,
+    addonPriceOverrides,
   };
 }
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://productnerd.github.io/kaimakki/sitemap.xml

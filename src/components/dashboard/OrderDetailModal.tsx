@@ -16,6 +16,9 @@ type Order = {
   primary_aspect_ratio: string;
   needs_additional_format: boolean;
   additional_aspect_ratio: string | null;
+  needs_stock_footage: boolean;
+  needs_ai_voice: boolean;
+  needs_expedited: boolean;
   intake_responses: Record<string, unknown> | null;
   list_price_cents: number;
   discount_percent: number;
@@ -159,6 +162,23 @@ export default function OrderDetailModal({ order, onClose }: OrderDetailModalPro
             </div>
           )}
         </div>
+
+        {(order.needs_additional_format || order.needs_stock_footage || order.needs_ai_voice || order.needs_expedited) && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {order.needs_additional_format && (
+              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
+            )}
+            {order.needs_stock_footage && (
+              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+stock</span>
+            )}
+            {order.needs_ai_voice && (
+              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+AI voice</span>
+            )}
+            {order.needs_expedited && (
+              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+rush</span>
+            )}
+          </div>
+        )}
 
         {order.notes && (
           <div className="mt-4">

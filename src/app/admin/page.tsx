@@ -23,6 +23,9 @@ type AdminOrder = {
   primary_aspect_ratio: string;
   needs_additional_format: boolean;
   additional_aspect_ratio: string | null;
+  needs_stock_footage: boolean;
+  needs_ai_voice: boolean;
+  needs_expedited: boolean;
   intake_responses: Record<string, unknown> | null;
   list_price_cents: number;
   discount_percent: number;

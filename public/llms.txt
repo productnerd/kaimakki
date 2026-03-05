@@ -1,0 +1,32 @@
+# Kaimakki Studio
+
+## What we do
+Kaimakki Studio is a done-for-you short-form video production service. Clients pick a video "recipe" (template), film footage on their phone following our shot list, and we edit it into a polished, scroll-stopping video.
+
+## How it works
+1. Pick a recipe — choose a video template that fits your goal
+2. Film your footage — we send a shot list, you film on your phone
+3. We edit — our team turns your footage into a finished video
+4. You post — get your video back and post it
+
+## The twist
+You pay upfront. If you don't ship your footage or post the video within 30 days, we donate part of your prepayment to charity. Tough love that keeps you accountable.
+
+## Pricing
+- Video recipes start from around EUR 49
+- The more you post, the less you pay — lifetime volume discounts
+- First order includes a free Strategy + Branding session
+
+## Industries we serve
+- Real Estate: property tours, listing videos, agent branding
+- Personal Brands: tips, stories, opinion content
+- Product Businesses: launches, demos, unboxings
+- Service Businesses: case studies, behind-the-scenes, testimonials
+
+## Pages
+- Home: /
+- Pricing & Loyalty Program: /pricing
+- Real Estate Videos: /for/real-estate
+- Personal Brand Videos: /for/personal-brands
+- Product Business Videos: /for/product-businesses
+- Service Business Videos: /for/service-businesses

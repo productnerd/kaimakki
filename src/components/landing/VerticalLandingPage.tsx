@@ -10,7 +10,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
 
-type UseCase = { id: string; name: string; sort_order: number };
+type UseCase = { id: string; name: string; sort_order: number; isRecommended?: boolean };
 
 type Recipe = {
   id: string;
@@ -27,7 +27,8 @@ type Recipe = {
   example_video_url: string | null;
   creative_surcharge_percent: number;
   example_urls: string[];
-  recipe_use_cases: { id: string; name: string }[];
+  recipe_use_cases: { id: string; name: string; isRecommended?: boolean }[];
+  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
 };
 
 const DIFFICULTY_RANK: Record<string, number> = {
@@ -74,7 +75,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       // Fetch all active video recipes with their use cases
       const { data: rawRecipes } = await supabase
         .from("video_recipes")
-        .select("*, recipe_use_cases(id, name, sort_order)")
+        .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, unlock_addon_key, unlock_requires_landscape, sort_order)")
         .eq("is_active", true)
         .eq("recipe_type", "video")
         .order("sort_order");
@@ -84,36 +85,30 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
         return;
       }
 
-      // Fetch ALL use_case_verticals to know which use cases are tagged to ANY vertical
-      const { data: allUcVerticals } = await supabase
-        .from("use_case_verticals")
-        .select("use_case_id");
-
-      const allTaggedIds = new Set((allUcVerticals ?? []).map((r: { use_case_id: string }) => r.use_case_id));
-
-      // Filter: for each recipe, keep use cases that are either:
-      // 1. Tagged to THIS vertical, OR
-      // 2. Universal (not tagged to ANY vertical)
-      const filtered: Recipe[] = [];
+      // Show ALL recipes, but mark use cases tagged to this vertical as recommended
+      // Sort: recommended use cases first within each recipe
+      const result: Recipe[] = [];
       for (const r of rawRecipes) {
         const allUseCases = ((r.recipe_use_cases as UseCase[]) || []).sort(
           (a, b) => a.sort_order - b.sort_order
         );
 
-        const relevantUseCases = allUseCases.filter(
-          (uc) => taggedUseCaseIds.has(uc.id) || !allTaggedIds.has(uc.id)
-        );
+        const withRecommended = allUseCases.map((uc) => ({
+          id: uc.id,
+          name: uc.name,
+          isRecommended: taggedUseCaseIds.has(uc.id),
+        }));
 
-        // Only include recipe if it has at least one relevant use case
-        if (relevantUseCases.length > 0) {
-          filtered.push({
-            ...r,
-            recipe_use_cases: relevantUseCases.map((uc) => ({ id: uc.id, name: uc.name })),
-          } as Recipe);
-        }
+        // Sort: recommended first, then the rest
+        withRecommended.sort((a, b) => (a.isRecommended === b.isRecommended ? 0 : a.isRecommended ? -1 : 1));
+
+        result.push({
+          ...r,
+          recipe_use_cases: withRecommended,
+        } as Recipe);
       }
 
-      setRecipes(filtered);
+      setRecipes(result);
       setLoading(false);
     }
 
@@ -134,12 +129,27 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     "@type": "Service",
     name: meta.headline,
     description: meta.metaDescription,
+    url: `https://productnerd.github.io/kaimakki/for/${vertical}`,
     provider: {
       "@type": "Organization",
       name: "Kaimakki Studio",
+      url: "https://productnerd.github.io/kaimakki",
     },
     serviceType: "Video Production",
     areaServed: "Worldwide",
+    ...(recipes.length > 0 && {
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: `Video recipes for ${meta.name}`,
+        itemListElement: recipes.map((r) => ({
+          "@type": "Offer",
+          name: r.name,
+          description: r.description,
+          price: (r.price_cents / 100).toFixed(2),
+          priceCurrency: "EUR",
+        })),
+      },
+    }),
   };
 
   return (
@@ -207,8 +217,13 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                       {recipe.recipe_use_cases.map((uc) => (
                         <span
                           key={uc.id}
-                          className="text-[10px] text-cream-61 bg-background/80 border border-border px-1.5 py-0.5 rounded-full"
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            uc.isRecommended
+                              ? "text-accent bg-accent/10 border border-accent/30"
+                              : "text-cream-61 bg-background/80 border border-border"
+                          }`}
                         >
+                          {uc.isRecommended && <span className="mr-0.5">⭐</span>}
                           {uc.name}
                         </span>
                       ))}
@@ -233,6 +248,11 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                 </Card>
               ))}
         </div>
+        {!loading && recipes.length > 0 && (
+          <p className="text-cream-31 text-xs mt-4">
+            ⭐ = Recommended for {meta.name}
+          </p>
+        )}
       </section>
 
       {/* How it works */}
