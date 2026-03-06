@@ -235,7 +235,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                 <Card
                   key={recipe.id}
                   hover={!isLocked}
-                  className={`flex flex-col p-4 group relative ${isLocked ? "opacity-60" : ""}`}
+                  className={`flex flex-col p-4 group relative aspect-[9/16] ${isLocked ? "opacity-60" : ""}`}
                   onClick={() => setSelectedRecipe(recipe)}
                 >
                   {/* Hover overlay for locked recipes */}
