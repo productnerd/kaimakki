@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getRecipeIcon } from "@/lib/constants";
+import { getUnlockState, getRecipeUnlockMilestone, type Milestone } from "@/lib/unlocks";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -102,6 +103,8 @@ export default function HomePage() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const [userDiscountPct, setUserDiscountPct] = useState(0);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [approvedCount, setApprovedCount] = useState(0);
   const { addItem } = useCart();
   const { user, profile } = useAuth();
   const router = useRouter();
@@ -184,17 +187,23 @@ export default function HomePage() {
         setRecipes(recipes as unknown as Recipe[]);
         setLoading(false);
       });
+    supabase
+      .from("unlock_milestones")
+      .select("*")
+      .order("min_videos")
+      .then(({ data }) => setMilestones((data ?? []) as Milestone[]));
   }, []);
 
   useEffect(() => {
     if (!user) {
       setUserDiscountPct(0);
+      setApprovedCount(0);
       return;
     }
     const supabase = createClient();
     supabase
       .from("brands")
-      .select("brand_volume(current_discount_percent)")
+      .select("brand_volume(current_discount_percent, approved_video_count)")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle()
@@ -203,8 +212,13 @@ export default function HomePage() {
           ? data.brand_volume[0]
           : data?.brand_volume;
         setUserDiscountPct(vol?.current_discount_percent ?? 0);
+        setApprovedCount(vol?.approved_video_count ?? 0);
       });
   }, [user]);
+
+  const unlock = milestones.length > 0
+    ? getUnlockState(user ? approvedCount : 0, milestones)
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -229,7 +243,7 @@ export default function HomePage() {
         <div className="inline-flex items-center gap-2 bg-surface border border-border rounded-brand px-5 py-3">
           <span className="text-lime text-sm font-medium">The deal:</span>
           <span className="text-cream-61 text-sm">
-            Pay upfront &rarr; We send you instructions &rarr; You film &rarr; Send us footage &rarr; Our humans edit &rarr; You post &rarr; Repeat (or we donate your money)
+            Pick three video recipes &rarr; Pay upfront &rarr; We send you instructions &rarr; You film &rarr; Send us footage &rarr; Our humans edit &rarr; You post &rarr; Repeat (or we donate your money)
           </span>
         </div>
       </div>
@@ -240,9 +254,6 @@ export default function HomePage() {
           <h2 className="font-display font-bold text-2xl text-cream">
             Pick three.
           </h2>
-          <p className="text-cream-31 text-sm mt-1">
-            Your first order starts at three videos. Choose your recipes below.
-          </p>
         </div>
       )}
 
@@ -257,20 +268,46 @@ export default function HomePage() {
             ))
           : (
             <>
-              {recipes.map((recipe) => (
+              {recipes.map((recipe) => {
+                const isLocked = unlock ? !unlock.unlockedRecipeSlugs.has(recipe.slug) : false;
+                const unlockMs = isLocked ? getRecipeUnlockMilestone(recipe.slug, milestones) : null;
+                const videosToGo = unlockMs ? Math.max(0, unlockMs.min_videos - (user ? approvedCount : 0)) : 0;
+
+                return (
                 <Card
                   key={recipe.id}
-                  hover
-                  className="flex flex-col p-4"
+                  hover={!isLocked}
+                  className={`flex flex-col p-4 group relative ${isLocked ? "opacity-60" : ""}`}
                   onClick={() => setSelectedRecipe(recipe)}
                 >
+                  {/* Hover overlay for locked recipes */}
+                  {isLocked && unlockMs && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/85 rounded-brand z-10 pointer-events-none">
+                      <div className="text-center px-4">
+                        <p className="text-accent text-sm font-bold">
+                          🔒 Unlocks at {unlockMs.tier_name}
+                        </p>
+                        <p className="text-cream-61 text-xs mt-1">
+                          {user
+                            ? `${videosToGo} more video${videosToGo !== 1 ? "s" : ""} to go`
+                            : `${unlockMs.min_videos} videos posted`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between mb-2">
                     <Badge variant={getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple" ? "lime" : "accent"}>
                       {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
                     </Badge>
-                    <span className="text-cream-31 text-[10px]">
-                      {recipe.turnaround_days}d
-                    </span>
+                    {isLocked ? (
+                      <span className="text-cream-31 text-sm">🔒</span>
+                    ) : (
+                      <span className="text-cream-31 text-[10px]">
+                        {recipe.turnaround_days}d
+                      </span>
+                    )}
                   </div>
 
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
@@ -308,6 +345,15 @@ export default function HomePage() {
                     </div>
                   )}
 
+                  {/* One-away pill for signed-in users */}
+                  {isLocked && user && videosToGo === 1 && (
+                    <div className="mb-2">
+                      <span className="text-[10px] text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full">
+                        Post one more video to unlock
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-auto pt-2">
                     <div>
                       {userDiscountPct > 0 && (
@@ -331,7 +377,8 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
 
               {/* Request Custom Video card */}
               <Card

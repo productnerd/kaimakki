@@ -5,10 +5,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { VERTICALS, VERTICAL_SLUGS } from "@/lib/verticals";
 import { getRecipeIcon } from "@/lib/constants";
+import { getUnlockState, getRecipeUnlockMilestone, type Milestone } from "@/lib/unlocks";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
+import { useAuth } from "@/providers/AuthProvider";
 
 type UseCase = { id: string; name: string; sort_order: number; isRecommended?: boolean };
 
@@ -47,6 +49,9 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
     const supabase = createClient();
@@ -110,10 +115,38 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
 
       setRecipes(result);
       setLoading(false);
+
+      // Fetch milestones for lock indicators
+      const { data: msData } = await supabase
+        .from("unlock_milestones")
+        .select("*")
+        .order("min_videos");
+      setMilestones((msData ?? []) as Milestone[]);
     }
 
     load();
   }, [vertical]);
+
+  // Fetch approved_video_count for signed-in users
+  useEffect(() => {
+    if (!user) {
+      setApprovedCount(0);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("brands")
+      .select("brand_volume(approved_video_count)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const vol = Array.isArray(data?.brand_volume)
+          ? data.brand_volume[0]
+          : data?.brand_volume;
+        setApprovedCount(vol?.approved_video_count ?? 0);
+      });
+  }, [user]);
 
   if (!meta) {
     return (
@@ -122,6 +155,10 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       </div>
     );
   }
+
+  const unlock = milestones.length > 0
+    ? getUnlockState(user ? approvedCount : 0, milestones)
+    : null;
 
   // JSON-LD structured data
   const jsonLd = {
@@ -186,13 +223,35 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   className="bg-surface border border-border rounded-brand p-4 aspect-[9/16] animate-pulse"
                 />
               ))
-            : recipes.map((recipe) => (
+            : recipes.map((recipe) => {
+                const isLocked = unlock ? !unlock.unlockedRecipeSlugs.has(recipe.slug) : false;
+                const unlockMs = isLocked ? getRecipeUnlockMilestone(recipe.slug, milestones) : null;
+                const videosToGo = unlockMs ? Math.max(0, unlockMs.min_videos - (user ? approvedCount : 0)) : 0;
+
+                return (
                 <Card
                   key={recipe.id}
-                  hover
-                  className="flex flex-col p-4"
+                  hover={!isLocked}
+                  className={`flex flex-col p-4 group relative ${isLocked ? "opacity-60" : ""}`}
                   onClick={() => setSelectedRecipe(recipe)}
                 >
+                  {/* Hover overlay for locked recipes */}
+                  {isLocked && unlockMs && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/85 rounded-brand z-10 pointer-events-none">
+                      <div className="text-center px-4">
+                        <p className="text-accent text-sm font-bold">
+                          🔒 Unlocks at {unlockMs.tier_name}
+                        </p>
+                        <p className="text-cream-61 text-xs mt-1">
+                          {user
+                            ? `${videosToGo} more video${videosToGo !== 1 ? "s" : ""} to go`
+                            : `${unlockMs.min_videos} videos posted`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between mb-2">
                     <Badge
                       variant={
@@ -203,7 +262,11 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     >
                       {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
                     </Badge>
-                    <span className="text-cream-31 text-[10px]">{recipe.turnaround_days}d</span>
+                    {isLocked ? (
+                      <span className="text-cream-31 text-sm">🔒</span>
+                    ) : (
+                      <span className="text-cream-31 text-[10px]">{recipe.turnaround_days}d</span>
+                    )}
                   </div>
 
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
@@ -230,6 +293,15 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     </div>
                   )}
 
+                  {/* One-away pill for signed-in users */}
+                  {isLocked && user && videosToGo === 1 && (
+                    <div className="mb-2">
+                      <span className="text-[10px] text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full">
+                        Post one more video to unlock
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-auto pt-2">
                     <span className="font-display font-bold text-lg text-cream">
                       &euro;{(recipe.price_cents / 100).toFixed(0)}
@@ -246,7 +318,8 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     </Button>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
         </div>
         {!loading && recipes.length > 0 && (
           <p className="text-cream-31 text-xs mt-4">

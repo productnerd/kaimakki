@@ -230,13 +230,13 @@ export default function RewardsTracker({
                       ? "bg-surface/80 border-accent/30 animate-pulse-glow"
                       : isUnlocked
                         ? "bg-surface/80 border-border"
-                        : "bg-background/50 border-border/50"
+                        : "bg-surface/40 border-border/70"
                   }
                 `}
               >
                 {/* Pulsing dot — Rookie on pricing page */}
                 {isRookie && (
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-5 right-5">
                     <div className="w-2 h-2 rounded-full bg-accent" />
                     <div className="absolute inset-0 w-2 h-2 rounded-full bg-accent animate-ping" style={{ animationDuration: "2s" }} />
                   </div>
@@ -285,7 +285,7 @@ export default function RewardsTracker({
                           className={`font-display font-bold text-lg ${
                             isCurrent || isUnlocked || isRookie
                               ? "text-cream"
-                              : "text-cream-61"
+                              : "text-cream-78"
                           }`}
                         >
                           {ms.tier_name}
@@ -371,7 +371,7 @@ export default function RewardsTracker({
                 )}
 
                 {/* Categorized unlocks */}
-                <div className={`space-y-3 ${isLocked && !isRookie ? "opacity-50" : ""}`}>
+                <div className={`space-y-3 ${isLocked && !isRookie ? "opacity-75" : ""}`}>
                   {/* Recipes — accent mini cards */}
                   {recipes.length > 0 && (
                     <div>
@@ -386,12 +386,15 @@ export default function RewardsTracker({
                                 ? "bg-accent/10 border-accent/20 text-accent"
                                 : isUnlocked || isRookie
                                   ? "bg-accent/10 border-accent/20 text-accent/80"
-                                  : "bg-background/50 border-border text-cream-31"
+                                  : "bg-background/70 border-border/70 text-cream-61"
                               }
                             `}
                           >
                             <span className="text-base">{r.icon}</span>
                             <span className="text-sm font-medium">{r.label}</span>
+                            {isNext && videosToNext === 1 && (
+                              <span className="text-[9px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">1 more video</span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -412,12 +415,15 @@ export default function RewardsTracker({
                                 ? "bg-lime/10 text-lime"
                                 : isUnlocked || isRookie
                                   ? "bg-lime/10 text-lime/80"
-                                  : "bg-background text-cream-31"
+                                  : "bg-background/70 text-cream-61"
                               }
                             `}
                           >
                             <span>{f.icon}</span>
                             {f.label}
+                            {isNext && videosToNext === 1 && (
+                              <span className="text-[9px] text-accent bg-accent/10 px-1 py-0.5 rounded-full ml-1">1 more video</span>
+                            )}
                           </span>
                         ))}
                       </div>
