@@ -227,7 +227,6 @@ export default function HomePage() {
                         {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
                       </Badge>
                       <div className="flex items-center gap-1.5 text-white/70 text-[10px]">
-                        {isLocked && <span className="text-sm leading-none">🔒</span>}
                         <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
                         <span>·</span>
                         <span>{recipe.turnaround_days}d</span>
@@ -236,7 +235,7 @@ export default function HomePage() {
 
                     {/* Top: name + description */}
                     <h3 className="font-display font-bold text-sm text-white mb-1 leading-tight">
-                      <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>{recipe.name}
+                      <span className="mr-1">{isLocked ? "🔒" : getRecipeIcon(recipe.slug)}</span>{recipe.name}
                     </h3>
                     <p className="text-white/60 text-xs line-clamp-4">
                       {recipe.description}
