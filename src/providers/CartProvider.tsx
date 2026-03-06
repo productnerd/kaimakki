@@ -8,6 +8,7 @@ import {
   useCallback,
   useRef,
   type ReactNode,
+  type MutableRefObject,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
@@ -68,6 +69,8 @@ type CartContextType = {
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
+  cartButtonRef: MutableRefObject<HTMLButtonElement | null>;
+  bump: boolean;
 };
 
 const CartContext = createContext<CartContextType>({
@@ -88,6 +91,8 @@ const CartContext = createContext<CartContextType>({
   openCart: () => {},
   closeCart: () => {},
   toggleCart: () => {},
+  cartButtonRef: { current: null },
+  bump: false,
 });
 
 function saveGuestCart(cartItems: CartItem[]) {
@@ -110,6 +115,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const prevMaxTierRef = useRef(0);
   const { user } = useAuth();
   const supabase = createClient();
+
+  // Fly-to-cart animation state
+  const cartButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [bump, setBump] = useState(false);
+  const [flyAnim, setFlyAnim] = useState<{ id: string; x: number; y: number } | null>(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handler = (e: PointerEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointermove", handler, { passive: true });
+    return () => window.removeEventListener("pointermove", handler);
+  }, []);
 
   const isFirstTimeBuyer = lifetimeCount === 0;
 
@@ -328,6 +347,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function triggerFlyToCart() {
+    const id = Date.now().toString();
+    setFlyAnim({ id, x: mouseRef.current.x, y: mouseRef.current.y });
+    setBump(true);
+    setTimeout(() => setBump(false), 600);
+    setTimeout(() => setFlyAnim(null), 700);
+  }
+
   async function addItem(recipeId: string, extras?: AddItemExtras) {
     if (!user) {
       // Guest mode: fetch recipe details and store in localStorage
@@ -370,6 +397,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const updated = [...items, newItem];
       setItems(updated);
       saveGuestCart(updated);
+      triggerFlyToCart();
       setIsOpen(true);
       return;
     }
@@ -437,6 +465,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await ensureSessionItems();
       }
       await fetchCart();
+      triggerFlyToCart();
       setIsOpen(true);
     }
   }
@@ -509,10 +538,64 @@ export function CartProvider({ children }: { children: ReactNode }) {
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),
         toggleCart: () => setIsOpen((p) => !p),
+        cartButtonRef,
+        bump,
       }}
     >
       {children}
+      {/* Flying dot animation */}
+      {flyAnim && cartButtonRef.current && (
+        <FlyingDot
+          key={flyAnim.id}
+          startX={flyAnim.x}
+          startY={flyAnim.y}
+          endX={
+            cartButtonRef.current.getBoundingClientRect().left +
+            cartButtonRef.current.getBoundingClientRect().width / 2
+          }
+          endY={
+            cartButtonRef.current.getBoundingClientRect().top +
+            cartButtonRef.current.getBoundingClientRect().height / 2
+          }
+        />
+      )}
     </CartContext.Provider>
+  );
+}
+
+/** Small accent dot that flies from click position to the cart icon */
+function FlyingDot({
+  startX,
+  startY,
+  endX,
+  endY,
+}: {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (ref.current) {
+        ref.current.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.3)`;
+        ref.current.style.opacity = "0";
+      }
+    });
+  }, [startX, startY, endX, endY]);
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-[200] pointer-events-none w-6 h-6 rounded-full bg-accent shadow-lg shadow-accent/40"
+      style={{
+        left: startX - 12,
+        top: startY - 12,
+        transition: "transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease-in",
+      }}
+    />
   );
 }
 

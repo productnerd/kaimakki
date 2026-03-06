@@ -11,6 +11,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
 import { useAuth } from "@/providers/AuthProvider";
+import { useCart } from "@/providers/CartProvider";
 
 type UseCase = { id: string; name: string; sort_order: number; isRecommended?: boolean };
 
@@ -27,6 +28,7 @@ type Recipe = {
   intake_form_schema: { fields: { name: string; label: string; type: string; required?: boolean; mode?: string; weHandleLabel?: string }[] };
   deliverables_description: string[];
   example_video_url: string | null;
+  example_thumbnail_url: string | null;
   creative_surcharge_percent: number;
   example_urls: string[];
   recipe_use_cases: { id: string; name: string; isRecommended?: boolean }[];
@@ -44,6 +46,16 @@ function getOverallDifficulty(filming: string, editing: string): string {
   return (DIFFICULTY_RANK[filming] ?? 0) >= (DIFFICULTY_RANK[editing] ?? 0) ? filming : editing;
 }
 
+function getThumbnailUrl(recipe: Recipe): string | null {
+  if (recipe.example_thumbnail_url) return recipe.example_thumbnail_url;
+  if (!recipe.example_video_url) return null;
+  const shortsMatch = recipe.example_video_url.match(/youtube\.com\/shorts\/([^/?]+)/);
+  if (shortsMatch) return `https://img.youtube.com/vi/${shortsMatch[1]}/hqdefault.jpg`;
+  const watchMatch = recipe.example_video_url.match(/youtube\.com\/watch\?v=([^&]+)/);
+  if (watchMatch) return `https://img.youtube.com/vi/${watchMatch[1]}/hqdefault.jpg`;
+  return null;
+}
+
 export default function VerticalLandingPage({ vertical }: { vertical: string }) {
   const meta = VERTICALS[vertical];
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -51,7 +63,9 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
+  const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const { user } = useAuth();
+  const { addItem } = useCart();
 
   useEffect(() => {
     const supabase = createClient();
@@ -161,6 +175,42 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     : null;
   const tierIndex = unlock ? getTierIndex(unlock.tier, milestones) : 0;
 
+  // Derive recommended recipes for bundles
+  const recommendedRecipes = recipes.filter((r) =>
+    r.recipe_use_cases.some((uc) => uc.isRecommended)
+  );
+  const otherRecipes = recipes.filter(
+    (r) => !r.recipe_use_cases.some((uc) => uc.isRecommended)
+  );
+
+  function pickBundleRecipes(count: number): Recipe[] {
+    const picked = recommendedRecipes.slice(0, count);
+    if (picked.length < count) picked.push(...otherRecipes.slice(0, count - picked.length));
+    return picked;
+  }
+
+  const starterRecipes = pickBundleRecipes(5);
+  const advancedRecipes = pickBundleRecipes(8);
+
+  const bundles = [
+    { name: "Starter Bundle", discountPct: 10, recipes: starterRecipes },
+    { name: "Advanced Bundle", discountPct: 15, recipes: advancedRecipes },
+  ];
+
+  function bundleTotal(rs: Recipe[]): number {
+    return Math.round(rs.reduce((s, r) => s + r.price_cents, 0) / 100);
+  }
+
+  function bundleDiscounted(rs: Recipe[], pct: number): number {
+    return Math.round(bundleTotal(rs) * (1 - pct / 100));
+  }
+
+  async function handleAddBundle(rs: Recipe[], name: string) {
+    setAddingBundle(name);
+    for (const r of rs) await addItem(r.id);
+    setAddingBundle(null);
+  }
+
   // JSON-LD structured data
   const jsonLd = {
     "@context": "https://schema.org",
@@ -203,19 +253,18 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
         <h1 className="font-display font-black text-4xl md:text-6xl text-cream mb-4 tracking-tight">
           {meta.headline}
         </h1>
-        <p className="text-cream-61 text-lg max-w-2xl mx-auto mb-6">
+        <p className="text-cream-61 text-lg max-w-2xl mx-auto">
           {meta.subtitle}
         </p>
-        <Link href="/">
-          <Button size="lg">Browse all recipes</Button>
-        </Link>
       </header>
 
       {/* Recipe grid */}
       <section>
-        <h2 className="font-display font-bold text-2xl text-cream mb-6">
-          Recipes for {meta.name}
-        </h2>
+        {!loading && recipes.length > 0 && (
+          <div className="flex justify-end mb-3">
+            <p className="text-cream-31 text-xs">⭐ = Recommended for {meta.name}</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
@@ -230,14 +279,43 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                 const videosToGo = unlockMs ? Math.max(0, unlockMs.min_videos - (user ? approvedCount : 0)) : 0;
                 const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
                 const hasDurationBoost = !!user && tierIndex > 0;
+                const thumbnail = getThumbnailUrl(recipe);
 
                 return (
                 <Card
                   key={recipe.id}
                   hover={!isLocked}
-                  className={`flex flex-col p-4 group relative aspect-[9/16] ${isLocked ? "opacity-60" : ""}`}
+                  className={`group relative aspect-[9/16] overflow-hidden !p-0 ${isLocked ? "opacity-60" : ""}`}
                   onClick={() => setSelectedRecipe(recipe)}
                 >
+                  {/* Background layer */}
+                  {thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumbnail}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface/90 to-background" />
+                  )}
+
+                  {/* Top gradient overlay */}
+                  <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-black/70 to-transparent z-[1]" />
+
+                  {/* Bottom gradient overlay */}
+                  <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-[1]" />
+
+                  {/* Play button (only when thumbnail exists) */}
+                  {thumbnail && (
+                    <div className="absolute inset-0 flex items-center justify-center z-[2] pointer-events-none">
+                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                        <span className="text-white text-lg ml-0.5">▶</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Hover overlay for locked recipes */}
                   {isLocked && unlockMs && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/85 rounded-brand z-10 pointer-events-none">
@@ -255,87 +333,198 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between mb-2">
-                    <Badge
-                      variant={
-                        getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple"
-                          ? "lime"
-                          : "accent"
-                      }
-                    >
-                      {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
-                    </Badge>
-                    <div className="flex items-center gap-1.5 text-cream-31 text-[10px]">
-                      {isLocked && <span className="text-sm leading-none">🔒</span>}
-                      <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
-                      <span>·</span>
-                      <span>{recipe.turnaround_days}d</span>
+                  {/* Content overlay */}
+                  <div className="absolute inset-0 p-4 flex flex-col z-[2]">
+                    {/* Top: badge + stats */}
+                    <div className="flex items-start justify-between mb-2">
+                      <Badge
+                        variant={
+                          getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple"
+                            ? "lime"
+                            : "accent"
+                        }
+                      >
+                        {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
+                      </Badge>
+                      <div className="flex items-center gap-1.5 text-white/70 text-[10px]">
+                        {isLocked && <span className="text-sm leading-none">🔒</span>}
+                        <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
+                        <span>·</span>
+                        <span>{recipe.turnaround_days}d</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
-                    <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
-                    {recipe.name}
-                  </h3>
-                  <p className="text-cream-61 text-xs mb-2 line-clamp-2">{recipe.description}</p>
+                    {/* Spacer */}
+                    <div className="flex-1" />
 
-                  {recipe.recipe_use_cases.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {recipe.recipe_use_cases.map((uc) => (
-                        <span
-                          key={uc.id}
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                            uc.isRecommended
-                              ? "text-accent bg-accent/10 border border-accent/30"
-                              : "text-cream-61 bg-background/80 border border-border"
-                          }`}
+                    {/* Bottom: name, description, use cases, price */}
+                    <div className="mt-auto">
+                      <h3 className="font-display font-bold text-sm text-white mb-1 leading-tight">
+                        <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
+                        {recipe.name}
+                      </h3>
+
+                      <p className="text-white/60 text-xs line-clamp-4 mb-2">
+                        {recipe.description}
+                      </p>
+
+                      {recipe.recipe_use_cases.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {recipe.recipe_use_cases.map((uc) => (
+                            <span
+                              key={uc.id}
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                uc.isRecommended
+                                  ? "text-accent bg-accent/10 border border-accent/30"
+                                  : "text-white/70 bg-white/10 border border-white/10"
+                              }`}
+                            >
+                              {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                              {uc.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* One-away pill for signed-in users */}
+                      {isLocked && user && videosToGo === 1 && (
+                        <div className="mb-2">
+                          <span className="text-[10px] text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full">
+                            Post one more video to unlock
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <span className="font-display font-bold text-lg text-white">
+                            &euro;{Math.round(recipe.price_cents * (1 + (recipe.creative_surcharge_percent ?? 25) / 100) / 100)}
+                          </span>
+                          <span className="text-white/40 text-[10px] block">
+                            starting at &euro;{Math.round(recipe.price_cents / 100)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRecipe(recipe);
+                          }}
                         >
-                          {uc.isRecommended && <span className="mr-0.5">⭐</span>}
-                          {uc.name}
-                        </span>
-                      ))}
+                          +
+                        </Button>
+                      </div>
                     </div>
-                  )}
-
-                  {/* One-away pill for signed-in users */}
-                  {isLocked && user && videosToGo === 1 && (
-                    <div className="mb-2">
-                      <span className="text-[10px] text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full">
-                        Post one more video to unlock
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mt-auto pt-2">
-                    <div>
-                      <span className="font-display font-bold text-lg text-cream">
-                        &euro;{Math.round(recipe.price_cents * (1 + (recipe.creative_surcharge_percent ?? 25) / 100) / 100)}
-                      </span>
-                      <span className="text-cream-31 text-[10px] block">
-                        starting at &euro;{Math.round(recipe.price_cents / 100)}
-                      </span>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRecipe(recipe);
-                      }}
-                    >
-                      +
-                    </Button>
                   </div>
                 </Card>
                 );
               })}
         </div>
-        {!loading && recipes.length > 0 && (
-          <p className="text-cream-31 text-xs mt-4">
-            ⭐ = Recommended for {meta.name}
-          </p>
-        )}
       </section>
+
+      {/* Pick three CTA */}
+      {!loading && recipes.length > 0 && (
+        <section className="mt-16 text-center">
+          <h2 className="font-display font-bold text-2xl text-cream">
+            Pick <span className="text-accent font-medium">three</span> videos or a bundle to get started
+          </h2>
+        </section>
+      )}
+
+      {/* Industry bundles */}
+      {!loading && starterRecipes.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display font-bold text-2xl text-cream mb-6">
+            Can&apos;t decide? Pick a bundle
+          </h2>
+          <div className="flex flex-col gap-8">
+            {bundles.map((bundle) => (
+              <Card key={bundle.name} className="border-accent/30">
+                {/* Bundle header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-display font-bold text-lg text-cream">
+                      {bundle.name}
+                    </h3>
+                    <Badge variant="accent">{bundle.recipes.length} videos</Badge>
+                    <Badge variant="lime">{bundle.discountPct}% off</Badge>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-display text-sm text-cream-31 line-through block">
+                      &euro;{bundleTotal(bundle.recipes)}
+                    </span>
+                    <span className="font-display font-bold text-2xl text-cream">
+                      &euro;{bundleDiscounted(bundle.recipes, bundle.discountPct)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mini recipe cards grid — no prices, no + button */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {bundle.recipes.map((recipe) => {
+                    const thumb = getThumbnailUrl(recipe);
+                    return (
+                      <div
+                        key={recipe.id}
+                        className="relative aspect-[9/16] overflow-hidden rounded-brand bg-surface border border-border"
+                      >
+                        {/* Background */}
+                        {thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface/90 to-background" />
+                        )}
+
+                        {/* Top gradient */}
+                        <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-black/70 to-transparent z-[1]" />
+
+                        {/* Bottom gradient */}
+                        <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-[1]" />
+
+                        {/* Content: badge + name only */}
+                        <div className="absolute inset-0 p-3 flex flex-col z-[2]">
+                          <Badge
+                            variant={
+                              getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple"
+                                ? "lime"
+                                : "accent"
+                            }
+                          >
+                            {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
+                          </Badge>
+                          <div className="flex-1" />
+                          <h4 className="font-display font-bold text-xs text-white leading-tight">
+                            <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
+                            {recipe.name}
+                          </h4>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Add bundle button */}
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  size="md"
+                  loading={addingBundle === bundle.name}
+                  onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
+                >
+                  Add bundle to cart
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* How it works */}
       <section className="mt-16">
@@ -372,20 +561,6 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
             </Link>
           ))}
         </div>
-      </section>
-
-      {/* CTA */}
-      <section className="mt-16 text-center">
-        <h2 className="font-display font-bold text-2xl text-cream mb-4">
-          Ready to start posting?
-        </h2>
-        <p className="text-cream-61 text-sm mb-6 max-w-lg mx-auto">
-          Pick a recipe, send your footage, get back a scroll-stopping video.
-          The more you post, the less you pay.
-        </p>
-        <Link href="/">
-          <Button size="lg">Browse all recipes</Button>
-        </Link>
       </section>
 
       {/* Recipe Detail Modal */}
