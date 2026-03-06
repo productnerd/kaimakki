@@ -6,7 +6,6 @@ export const RECIPE_ICONS: Record<string, string> = {
   "behind-the-scenes": "🎬",
   "podcast-clipping": "🎧",
   "pov-come-with-me": "👀",
-  "timelapse": "⏱️",
   "screen-recording-voiceover": "🖥️",
   "announcement-teaser": "📣",
   "carousel-style-video": "🎠",
