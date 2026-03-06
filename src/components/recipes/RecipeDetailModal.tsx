@@ -499,7 +499,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               What you get
             </h3>
             <ul className="space-y-2">
-              {recipe.deliverables_description.map((d) => (
+              {(recipe.deliverables_description ?? []).map((d) => (
                 <li key={d} className="flex items-start gap-2 text-sm text-cream-61">
                   <span className="text-lime mt-0.5">&#x2713;</span>
                   <span>{d}</span>

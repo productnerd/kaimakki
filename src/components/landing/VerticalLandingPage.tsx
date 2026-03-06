@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { VERTICALS, VERTICAL_SLUGS } from "@/lib/verticals";
 import { getRecipeIcon } from "@/lib/constants";
-import { getUnlockState, getRecipeUnlockMilestone, type Milestone } from "@/lib/unlocks";
+import { getUnlockState, getRecipeUnlockMilestone, getEffectiveDuration, getTierIndex, type Milestone } from "@/lib/unlocks";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -159,6 +159,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const unlock = milestones.length > 0
     ? getUnlockState(user ? approvedCount : 0, milestones)
     : null;
+  const tierIndex = unlock ? getTierIndex(unlock.tier, milestones) : 0;
 
   // JSON-LD structured data
   const jsonLd = {
@@ -227,6 +228,8 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                 const isLocked = unlock ? !unlock.unlockedRecipeSlugs.has(recipe.slug) : false;
                 const unlockMs = isLocked ? getRecipeUnlockMilestone(recipe.slug, milestones) : null;
                 const videosToGo = unlockMs ? Math.max(0, unlockMs.min_videos - (user ? approvedCount : 0)) : 0;
+                const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
+                const hasDurationBoost = !!user && tierIndex > 0;
 
                 return (
                 <Card
@@ -262,11 +265,12 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     >
                       {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
                     </Badge>
-                    {isLocked ? (
-                      <span className="text-cream-31 text-sm">🔒</span>
-                    ) : (
-                      <span className="text-cream-31 text-[10px]">{recipe.turnaround_days}d</span>
-                    )}
+                    <div className="flex items-center gap-1.5 text-cream-31 text-[10px]">
+                      {isLocked && <span className="text-sm leading-none">🔒</span>}
+                      <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
+                      <span>·</span>
+                      <span>{recipe.turnaround_days}d</span>
+                    </div>
                   </div>
 
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">

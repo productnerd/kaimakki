@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getRecipeIcon } from "@/lib/constants";
-import { getUnlockState, getRecipeUnlockMilestone, type Milestone } from "@/lib/unlocks";
+import { getUnlockState, getRecipeUnlockMilestone, getEffectiveDuration, getTierIndex, type Milestone } from "@/lib/unlocks";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -219,6 +219,7 @@ export default function HomePage() {
   const unlock = milestones.length > 0
     ? getUnlockState(user ? approvedCount : 0, milestones)
     : null;
+  const tierIndex = unlock ? getTierIndex(unlock.tier, milestones) : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -272,6 +273,8 @@ export default function HomePage() {
                 const isLocked = unlock ? !unlock.unlockedRecipeSlugs.has(recipe.slug) : false;
                 const unlockMs = isLocked ? getRecipeUnlockMilestone(recipe.slug, milestones) : null;
                 const videosToGo = unlockMs ? Math.max(0, unlockMs.min_videos - (user ? approvedCount : 0)) : 0;
+                const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
+                const hasDurationBoost = !!user && tierIndex > 0;
 
                 return (
                 <Card
@@ -301,13 +304,12 @@ export default function HomePage() {
                     <Badge variant={getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple" ? "lime" : "accent"}>
                       {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
                     </Badge>
-                    {isLocked ? (
-                      <span className="text-cream-31 text-sm">🔒</span>
-                    ) : (
-                      <span className="text-cream-31 text-[10px]">
-                        {recipe.turnaround_days}d
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 text-cream-31 text-[10px]">
+                      {isLocked && <span className="text-sm leading-none">🔒</span>}
+                      <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
+                      <span>·</span>
+                      <span>{recipe.turnaround_days}d</span>
+                    </div>
                   </div>
 
                   <h3 className="font-display font-bold text-sm text-cream mb-1 leading-tight">
