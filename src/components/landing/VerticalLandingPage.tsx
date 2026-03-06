@@ -307,9 +307,14 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   )}
 
                   <div className="flex items-center justify-between mt-auto pt-2">
-                    <span className="font-display font-bold text-lg text-cream">
-                      &euro;{(recipe.price_cents / 100).toFixed(0)}
-                    </span>
+                    <div>
+                      <span className="font-display font-bold text-lg text-cream">
+                        &euro;{Math.round(recipe.price_cents * (1 + (recipe.creative_surcharge_percent ?? 25) / 100) / 100)}
+                      </span>
+                      <span className="text-cream-31 text-[10px] block">
+                        starting at &euro;{Math.round(recipe.price_cents / 100)}
+                      </span>
+                    </div>
                     <Button
                       variant="secondary"
                       size="sm"

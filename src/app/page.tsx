@@ -360,11 +360,14 @@ export default function HomePage() {
                     <div>
                       {userDiscountPct > 0 && (
                         <span className="font-display text-xs text-cream-31 line-through block">
-                          &euro;{(recipe.price_cents / 100).toFixed(0)}
+                          &euro;{Math.round(recipe.price_cents * (1 + (recipe.creative_surcharge_percent ?? 25) / 100) / 100)}
                         </span>
                       )}
                       <span className="font-display font-bold text-lg text-cream">
-                        &euro;{(applyDiscount(recipe.price_cents) / 100).toFixed(0)}
+                        &euro;{Math.round(applyDiscount(recipe.price_cents * (1 + (recipe.creative_surcharge_percent ?? 25) / 100)) / 100)}
+                      </span>
+                      <span className="text-cream-31 text-[10px] block">
+                        starting at &euro;{Math.round(applyDiscount(recipe.price_cents) / 100)}
                       </span>
                     </div>
                     <Button
