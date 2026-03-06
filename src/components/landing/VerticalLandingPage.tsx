@@ -261,7 +261,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       {/* Recipe grid */}
       <section>
         {!loading && recipes.length > 0 && (
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-center mb-3">
             <p className="text-cream-31 text-xs">⭐ = Recommended for {meta.name}</p>
           </div>
         )}
