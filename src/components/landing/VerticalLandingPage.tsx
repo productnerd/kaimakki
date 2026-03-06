@@ -307,15 +307,6 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   {/* Bottom gradient overlay */}
                   <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-[1]" />
 
-                  {/* Play button (only when thumbnail exists) */}
-                  {thumbnail && (
-                    <div className="absolute inset-0 flex items-center justify-center z-[2] pointer-events-none">
-                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                        <span className="text-white text-lg ml-0.5">▶</span>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Hover overlay for locked recipes */}
                   {isLocked && unlockMs && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/85 rounded-brand z-10 pointer-events-none">
@@ -354,20 +345,20 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                       </div>
                     </div>
 
+                    {/* Top: name + description */}
+                    <h3 className="font-display font-bold text-sm text-white mb-1 leading-tight">
+                      <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
+                      {recipe.name}
+                    </h3>
+                    <p className="text-white/60 text-xs line-clamp-4">
+                      {recipe.description}
+                    </p>
+
                     {/* Spacer */}
                     <div className="flex-1" />
 
-                    {/* Bottom: name, description, use cases, price */}
+                    {/* Bottom: use cases, price, + button */}
                     <div className="mt-auto">
-                      <h3 className="font-display font-bold text-sm text-white mb-1 leading-tight">
-                        <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
-                        {recipe.name}
-                      </h3>
-
-                      <p className="text-white/60 text-xs line-clamp-4 mb-2">
-                        {recipe.description}
-                      </p>
-
                       {recipe.recipe_use_cases.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {recipe.recipe_use_cases.map((uc) => (
