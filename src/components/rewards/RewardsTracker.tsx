@@ -26,6 +26,7 @@ export default function RewardsTracker({
 }: RewardsTrackerProps) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [avgPriceCents, setAvgPriceCents] = useState<number>(0);
+  const [recipeNames, setRecipeNames] = useState<Record<string, string>>({});
   const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set());
 
   function toggleExpand(id: string) {
@@ -46,13 +47,16 @@ export default function RewardsTracker({
       .then(({ data }) => setMilestones((data ?? []) as Milestone[]));
     supabase
       .from("video_recipes")
-      .select("price_cents")
+      .select("slug, name, price_cents")
       .eq("is_active", true)
       .eq("recipe_type", "video")
       .then(({ data }) => {
         if (data && data.length > 0) {
           const avg = data.reduce((sum, r) => sum + r.price_cents, 0) / data.length;
           setAvgPriceCents(Math.round(avg));
+          const names: Record<string, string> = {};
+          for (const r of data) names[r.slug] = r.name;
+          setRecipeNames(names);
         }
       });
   }, []);
@@ -123,10 +127,12 @@ export default function RewardsTracker({
           // Categorize all unlocks for this milestone
           type CatItem = { icon: string; label: string };
 
-          const recipes: CatItem[] = ms.unlocked_recipe_slugs.map((slug) => ({
-            icon: getRecipeIcon(slug),
-            label: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          }));
+          const recipes: CatItem[] = ms.unlocked_recipe_slugs
+            .filter((slug) => recipeNames[slug])
+            .map((slug) => ({
+              icon: getRecipeIcon(slug),
+              label: recipeNames[slug],
+            }));
 
           // Add recipe-category perks (e.g. "Early access to new recipes")
           for (const perk of ms.perks) {
@@ -176,9 +182,9 @@ export default function RewardsTracker({
             for (let j = 0; j <= i; j++) {
               const m = milestones[j];
               for (const slug of m.unlocked_recipe_slugs) {
-                if (!seenR.has(slug)) {
+                if (!seenR.has(slug) && recipeNames[slug]) {
                   seenR.add(slug);
-                  cumRecipes.push({ icon: getRecipeIcon(slug), label: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) });
+                  cumRecipes.push({ icon: getRecipeIcon(slug), label: recipeNames[slug] });
                 }
               }
               for (const perk of m.perks) {

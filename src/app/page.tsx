@@ -243,7 +243,7 @@ export default function HomePage() {
         <div className="inline-flex items-center gap-2 bg-surface border border-border rounded-brand px-5 py-3">
           <span className="text-lime text-sm font-medium">The deal:</span>
           <span className="text-cream-61 text-sm">
-            Pick three video recipes &rarr; Pay upfront &rarr; We send you instructions &rarr; You film &rarr; Send us footage &rarr; Our humans edit &rarr; You post &rarr; Repeat (or we donate your money)
+            Pick three video recipes &rarr; Pay upfront &rarr; You film &rarr; Send us footage &rarr; Our humans edit &rarr; You post (or we donate your money)
           </span>
         </div>
       </div>
