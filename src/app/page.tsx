@@ -189,11 +189,11 @@ export default function HomePage() {
                     <img
                       src={thumbnail}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className={`absolute inset-0 w-full h-full object-cover ${isLocked ? "grayscale" : ""}`}
                       loading="lazy"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface/90 to-background" />
+                    <div className={`absolute inset-0 bg-gradient-to-b from-surface via-surface/90 to-background ${isLocked ? "grayscale" : ""}`} />
                   )}
 
                   {/* Top gradient overlay */}
