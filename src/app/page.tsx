@@ -212,7 +212,7 @@ export default function HomePage() {
                         <p className="text-cream-61 text-xs mt-1">
                           {user
                             ? `${videosToGo} more video${videosToGo !== 1 ? "s" : ""} to go`
-                            : `${unlockMs.min_videos} videos posted`
+                            : `Post ${unlockMs.min_videos} more videos`
                           }
                         </p>
                       </div>

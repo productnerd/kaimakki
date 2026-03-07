@@ -8,7 +8,6 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
-import { useCart } from "@/providers/CartProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 
@@ -32,63 +31,6 @@ type Recipe = {
   recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
 };
 
-type Bundle = {
-  slug: string;
-  name: string;
-  description: string;
-  items: { recipeId: string; recipeName: string; quantity: number }[];
-};
-
-const BUNDLES: Bundle[] = [
-  {
-    slug: "personal-brand-starter",
-    name: "Personal Brand Starter",
-    description:
-      "4 videos to make you look like you have your life together. No excuses.",
-    items: [
-      { recipeId: "6982115e-5a12-4b39-879b-685f83347a99", recipeName: "Talking Head Reel", quantity: 2 },
-      { recipeId: "7f1fd5c9-58d4-4934-a880-a1894575836a", recipeName: "Educational / Myth-Buster", quantity: 1 },
-      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Visual Storytelling", quantity: 1 },
-    ],
-  },
-  {
-    slug: "product-launch-pack",
-    name: "Product Launch Pack",
-    description: "Launch day is coming. 4 videos so your product doesn't launch into the void.",
-    items: [
-      { recipeId: "ba0b3663-6331-4f39-8057-48c03a8f2390", recipeName: "Product Showcase", quantity: 2 },
-      { recipeId: "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce", recipeName: "Testimonial / Social Proof", quantity: 1 },
-      { recipeId: "7f1fd5c9-58d4-4934-a880-a1894575836a", recipeName: "Educational / Myth-Buster", quantity: 1 },
-    ],
-  },
-  {
-    slug: "content-machine",
-    name: "Content Machine",
-    description: "One of everything. For people who actually want to show up consistently.",
-    items: [
-      { recipeId: "6982115e-5a12-4b39-879b-685f83347a99", recipeName: "Talking Head Reel", quantity: 1 },
-      { recipeId: "7f1fd5c9-58d4-4934-a880-a1894575836a", recipeName: "Educational / Myth-Buster", quantity: 1 },
-      { recipeId: "ba0b3663-6331-4f39-8057-48c03a8f2390", recipeName: "Product Showcase", quantity: 1 },
-      { recipeId: "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce", recipeName: "Testimonial / Social Proof", quantity: 1 },
-      { recipeId: "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1", recipeName: "Visual Storytelling", quantity: 1 },
-    ],
-  },
-];
-
-const RECIPE_PRICES: Record<string, number> = {
-  "6982115e-5a12-4b39-879b-685f83347a99": 95,
-  "7f1fd5c9-58d4-4934-a880-a1894575836a": 150,
-  "ba0b3663-6331-4f39-8057-48c03a8f2390": 140,
-  "f7ac6c3f-fede-4c4e-b33f-da9a278b78ce": 110,
-  "986f3f84-4d28-4ab2-9b06-cfb81e5aabe1": 150,
-  "be9b4c37-5d46-4391-bc83-ae13a188ec83": 180,
-};
-
-const DISCOUNT_TIERS = [
-  { min: 12, pct: 20 },
-  { min: 8, pct: 15 },
-  { min: 3, pct: 10 },
-];
 
 const DIFFICULTY_RANK: Record<string, number> = {
   simple: 0,
@@ -118,56 +60,16 @@ export default function BuyVideosPage() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const [userDiscountPct, setUserDiscountPct] = useState(0);
   const [lifetimeCount, setLifetimeCount] = useState(0);
   const [approvedCount, setApprovedCount] = useState(0);
   const [brandId, setBrandId] = useState<string | null>(null);
   const [hasPendingUpgrade, setHasPendingUpgrade] = useState(false);
-  const { addItem } = useCart();
   const { user } = useAuth();
   const router = useRouter();
 
-  function getBundleVideoCount(bundle: Bundle): number {
-    return bundle.items.reduce((n, i) => n + i.quantity, 0);
-  }
-
-  function getBundleDiscountPct(bundle: Bundle): number {
-    const count = getBundleVideoCount(bundle);
-    for (const tier of DISCOUNT_TIERS) {
-      if (count >= tier.min) return tier.pct;
-    }
-    return 0;
-  }
-
-  function getBundleTotal(bundle: Bundle): number {
-    return bundle.items.reduce(
-      (sum, item) => sum + (RECIPE_PRICES[item.recipeId] ?? 0) * item.quantity,
-      0
-    );
-  }
-
-  function getEffectiveBundlePct(bundle: Bundle): number {
-    return Math.max(userDiscountPct, getBundleDiscountPct(bundle));
-  }
-
-  function getEffectiveBundleTotal(bundle: Bundle): number {
-    const total = getBundleTotal(bundle);
-    return Math.round(total * (1 - getEffectiveBundlePct(bundle) / 100));
-  }
-
   function applyDiscount(cents: number): number {
     return Math.round(cents * (1 - unlock.discountPct / 100));
-  }
-
-  async function handleAddBundle(bundle: Bundle) {
-    setAddingBundle(bundle.name);
-    for (const item of bundle.items) {
-      for (let i = 0; i < item.quantity; i++) {
-        await addItem(item.recipeId);
-      }
-    }
-    setAddingBundle(null);
   }
 
   useEffect(() => {
@@ -237,10 +139,6 @@ export default function BuyVideosPage() {
   // Split recipes into unlocked and locked
   const unlockedRecipes = recipes.filter((r) => unlock.unlockedRecipeSlugs.has(r.slug));
   const lockedRecipes = recipes.filter((r) => !unlock.unlockedRecipeSlugs.has(r.slug));
-
-  // Filter bundles by unlock state
-  const unlockedBundles = BUNDLES.filter((b) => unlock.bundlesUnlocked.has(b.slug));
-  const lockedBundles = BUNDLES.filter((b) => !unlock.bundlesUnlocked.has(b.slug));
 
   return (
     <div>
@@ -474,95 +372,6 @@ export default function BuyVideosPage() {
             </>
           )}
       </div>
-
-      {/* Bundles */}
-      {(unlockedBundles.length > 0 || lockedBundles.length > 0) && (
-        <div>
-          <h2 className="font-display font-bold text-xl text-cream mb-2">
-            Bundles
-          </h2>
-          <p className="text-cream-31 text-sm mb-6">
-            Commit to more. Save more. Procrastinate less.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Unlocked bundles */}
-            {unlockedBundles.map((bundle) => (
-              <Card
-                key={bundle.name}
-                className="border-accent/30 flex flex-col"
-              >
-                <Badge variant="accent" className="uppercase tracking-wide self-start mb-3">
-                  {getBundleVideoCount(bundle)} videos
-                </Badge>
-
-                <h3 className="font-display font-bold text-lg text-cream mb-2">
-                  {bundle.name}
-                </h3>
-                <p className="text-cream-61 text-sm mb-4">
-                  {bundle.description}
-                </p>
-
-                <ul className="text-cream-78 text-sm space-y-1 mb-6">
-                  {bundle.items.map((item) => (
-                    <li key={item.recipeId}>
-                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                      {item.recipeName}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-auto space-y-4">
-                  <div>
-                    {getEffectiveBundlePct(bundle) > 0 && (
-                      <span className="font-display text-sm text-cream-31 line-through block">
-                        &euro;{getBundleTotal(bundle)}
-                      </span>
-                    )}
-                    <span className="font-display font-bold text-2xl text-cream">
-                      &euro;{getEffectiveBundleTotal(bundle)}
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    size="md"
-                    loading={addingBundle === bundle.name}
-                    onClick={() => handleAddBundle(bundle)}
-                  >
-                    Add all to cart
-                  </Button>
-                </div>
-              </Card>
-            ))}
-
-            {/* Locked bundles — teaser */}
-            {lockedBundles.map((bundle) => (
-              <Card
-                key={bundle.name}
-                className="border-border flex flex-col opacity-50"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <Badge variant="default">locked</Badge>
-                  <span className="text-lg">🔒</span>
-                </div>
-
-                <h3 className="font-display font-bold text-lg text-cream mb-2">
-                  {bundle.name}
-                </h3>
-
-                <div className="select-none blur-[6px] pointer-events-none flex-1">
-                  <p className="text-cream-61 text-sm mb-4">{bundle.description}</p>
-                  <div className="h-12 bg-surface rounded-brand" />
-                </div>
-
-                <div className="mt-auto pt-4 text-center">
-                  <p className="text-accent text-xs font-medium">Locked</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Recipe Detail Modal */}
       <RecipeDetailModal

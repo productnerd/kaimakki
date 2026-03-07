@@ -189,12 +189,12 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     return picked;
   }
 
-  const starterRecipes = pickBundleRecipes(5);
+  const starterRecipes = pickBundleRecipes(4);
   const advancedRecipes = pickBundleRecipes(8);
 
   const bundles = [
-    { name: "Starter Bundle", discountPct: 10, recipes: starterRecipes },
-    { name: "Advanced Bundle", discountPct: 15, recipes: advancedRecipes },
+    { name: "Starter Bundle", discountPct: 10, recipes: starterRecipes, description: meta.starterDescription },
+    { name: "Advanced Bundle", discountPct: 15, recipes: advancedRecipes, description: meta.advancedDescription },
   ];
 
   function bundleTotal(rs: Recipe[]): number {
@@ -317,7 +317,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                         <p className="text-cream-61 text-xs mt-1">
                           {user
                             ? `${videosToGo} more video${videosToGo !== 1 ? "s" : ""} to go`
-                            : `${unlockMs.min_videos} videos posted`
+                            : `Post ${unlockMs.min_videos} more videos`
                           }
                         </p>
                       </div>
@@ -432,38 +432,35 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
             {bundles.map((bundle) => (
               <Card key={bundle.name} className="border-accent/30">
                 {/* Bundle header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-display font-bold text-lg text-cream">
                       {bundle.name}
                     </h3>
                     <Badge variant="accent">{bundle.recipes.length} videos</Badge>
                     <Badge variant="lime">{bundle.discountPct}% off</Badge>
                   </div>
-                  <div className="text-right">
-                    <span className="font-display text-sm text-cream-31 line-through block">
-                      &euro;{bundleTotal(bundle.recipes)}
-                    </span>
-                    <span className="font-display font-bold text-2xl text-cream">
-                      &euro;{bundleDiscounted(bundle.recipes, bundle.discountPct)}
-                    </span>
-                  </div>
+                  <p className="text-cream-61 text-sm">{bundle.description}</p>
                 </div>
 
-                {/* Mini recipe cards grid — no prices, no + button */}
+                {/* Recipe cards grid — same card as main grid, no price/+ button */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   {bundle.recipes.map((recipe) => {
-                    const thumb = getThumbnailUrl(recipe);
+                    const thumbnail = getThumbnailUrl(recipe);
+                    const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
+                    const hasDurationBoost = !!user && tierIndex > 0;
+
                     return (
                       <div
                         key={recipe.id}
-                        className="relative aspect-[9/16] overflow-hidden rounded-brand bg-surface border border-border"
+                        className="relative aspect-[9/16] overflow-hidden rounded-brand bg-surface border border-border cursor-pointer hover:border-accent/50 transition-colors"
+                        onClick={() => setSelectedRecipe(recipe)}
                       >
                         {/* Background */}
-                        {thumb ? (
+                        {thumbnail ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={thumb}
+                            src={thumbnail}
                             alt=""
                             className="absolute inset-0 w-full h-full object-cover"
                             loading="lazy"
@@ -478,38 +475,81 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                         {/* Bottom gradient */}
                         <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-[1]" />
 
-                        {/* Content: badge + name only */}
+                        {/* Content overlay — same structure as main grid */}
                         <div className="absolute inset-0 p-3 flex flex-col z-[2]">
-                          <Badge
-                            variant={
-                              getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple"
-                                ? "lime"
-                                : "accent"
-                            }
-                          >
-                            {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
-                          </Badge>
-                          <div className="flex-1" />
-                          <h4 className="font-display font-bold text-xs text-white leading-tight">
+                          {/* Top: badge + stats */}
+                          <div className="flex items-start justify-between mb-2">
+                            <Badge
+                              variant={
+                                getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty) === "simple"
+                                  ? "lime"
+                                  : "accent"
+                              }
+                            >
+                              {getOverallDifficulty(recipe.filming_difficulty, recipe.editing_difficulty)}
+                            </Badge>
+                            <div className="flex items-center gap-1.5 text-white/70 text-[10px]">
+                              <span className={hasDurationBoost ? "text-lime" : ""}>{effectiveDuration}s</span>
+                              <span>·</span>
+                              <span>{recipe.turnaround_days}d</span>
+                            </div>
+                          </div>
+
+                          {/* Name + description */}
+                          <h4 className="font-display font-bold text-xs text-white mb-1 leading-tight">
                             <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
                             {recipe.name}
                           </h4>
+                          <p className="text-white/60 text-[10px] line-clamp-3">
+                            {recipe.description}
+                          </p>
+
+                          {/* Spacer */}
+                          <div className="flex-1" />
+
+                          {/* Bottom: use cases only */}
+                          {recipe.recipe_use_cases.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {recipe.recipe_use_cases.map((uc) => (
+                                <span
+                                  key={uc.id}
+                                  className={`text-[9px] px-1 py-0.5 rounded-full ${
+                                    uc.isRecommended
+                                      ? "text-accent bg-accent/10 border border-accent/30"
+                                      : "text-white/70 bg-white/10 border border-white/10"
+                                  }`}
+                                >
+                                  {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                                  {uc.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Add bundle button */}
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  size="md"
-                  loading={addingBundle === bundle.name}
-                  onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
-                >
-                  Add bundle to cart
-                </Button>
+                {/* Footer: price left, button right */}
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <span className="font-display text-sm text-cream-31 line-through block">
+                      &euro;{bundleTotal(bundle.recipes)}
+                    </span>
+                    <span className="font-display font-bold text-2xl text-cream">
+                      &euro;{bundleDiscounted(bundle.recipes, bundle.discountPct)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={addingBundle === bundle.name}
+                    onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
+                  >
+                    Add bundle to cart
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>
@@ -535,21 +575,24 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
         </div>
       </section>
 
-      {/* Other verticals */}
+      {/* Other verticals — ticker */}
       <section className="mt-16">
         <h2 className="font-display font-bold text-2xl text-cream mb-6">
           Explore other industries
         </h2>
-        <div className="flex flex-wrap gap-3">
-          {VERTICAL_SLUGS.filter((s) => s !== vertical).map((slug) => (
-            <Link
-              key={slug}
-              href={`/for/${slug}`}
-              className="text-sm text-cream-61 bg-surface border border-border rounded-brand px-4 py-2 hover:border-accent/50 transition-colors"
-            >
-              {VERTICALS[slug].name}
-            </Link>
-          ))}
+        <div className="overflow-hidden">
+          <div className="flex animate-ticker w-max gap-4 hover:[animation-play-state:paused]">
+            {[...VERTICAL_SLUGS.filter((s) => s !== vertical), ...VERTICAL_SLUGS.filter((s) => s !== vertical)].map((slug, i) => (
+              <Link
+                key={`${slug}-${i}`}
+                href={`/for/${slug}`}
+                className="flex items-center gap-2 text-sm text-cream-61 bg-surface border border-border rounded-brand px-4 py-2.5 hover:border-accent/50 hover:text-cream transition-colors whitespace-nowrap shrink-0"
+              >
+                <span>{VERTICALS[slug].icon}</span>
+                {VERTICALS[slug].name}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

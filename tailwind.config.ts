@@ -48,12 +48,17 @@ const config: Config = {
           "0%, 100%": { transform: "scale(1)", opacity: "1" },
           "50%": { transform: "scale(1.05)", opacity: "0.9" },
         },
+        "ticker": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "pulse-glow-lime": "pulse-glow-lime 2s ease-in-out infinite",
         "shimmer": "shimmer 3s ease-in-out infinite",
         "breathe": "breathe 3s ease-in-out infinite",
+        "ticker": "ticker 30s linear infinite",
       },
     },
   },
