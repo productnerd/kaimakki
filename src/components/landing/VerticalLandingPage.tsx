@@ -596,19 +596,42 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
 
       {/* How it works */}
       <section className="mt-16">
-        <h2 className="font-display font-bold text-2xl text-cream mb-6">How it works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <h2 className="font-display font-bold text-2xl text-cream mb-8">How it works</h2>
+        <div className="max-w-2xl mx-auto">
           {[
-            { step: "1", title: "Pick a recipe", desc: "Choose a video template that fits your goal." },
-            { step: "2", title: "Film your footage", desc: "We send you a shot list. You film on your phone." },
-            { step: "3", title: "We edit", desc: "Our humans turn your footage into a scroll-stopper." },
-            { step: "4", title: "You post", desc: "Get your video back and post it. Or we donate your money." },
-          ].map((s) => (
-            <article key={s.step} className="bg-surface border border-border rounded-brand p-5">
-              <span className="font-display font-bold text-2xl text-accent">{s.step}</span>
-              <h3 className="font-display font-bold text-sm text-cream mt-2 mb-1">{s.title}</h3>
-              <p className="text-cream-61 text-xs">{s.desc}</p>
-            </article>
+            { step: "1", icon: "🛒", title: "Pick your videos", desc: "Choose 3+ video recipes that fit your goals. Mix and match, or grab a bundle.", tag: null },
+            { step: "2", icon: "📋", title: "Fill in the questionnaire", desc: "Answer a few questions about your brand, audience, and goals so we know what we're working with.", tag: null },
+            { step: "3", icon: "🧠", title: "Strategy session", desc: "A 1-on-1 call with a real human. We map out your content pillars, topics, posting cadence, and game plan.", tag: "First order" },
+            { step: "4", icon: "🎨", title: "Video branding guidelines", desc: "We deliver your brand playbook — visual style, colours, animation style, pacing, music direction. The whole thing.", tag: "First order" },
+            { step: "5", icon: "📅", title: "Content calendar", desc: "Your personal strategy dashboard goes live with a content calendar and all the video ideas from your session.", tag: "First order" },
+            { step: "6", icon: "👤", title: "Meet your account manager", desc: "You get a dedicated human and a direct channel. Questions, feedback, weird requests — they've got you.", tag: null },
+            { step: "7", icon: "🎬", title: "Film your footage", desc: "We send you a shot list for each video. You film on your phone. No fancy gear needed.", tag: null },
+            { step: "8", icon: "📤", title: "Send us the footage", desc: "Upload your clips. We take it from here.", tag: null },
+            { step: "9", icon: "✂️", title: "We edit", desc: "Our editors turn your footage into scroll-stoppers using your branding guidelines.", tag: null },
+            { step: "10", icon: "🔄", title: "Review + 1 free revision", desc: "Watch your video. Don't love something? Give feedback and we'll revise it once — on us.", tag: null },
+            { step: "11", icon: "🚀", title: "You post (or else)", desc: "Get your final video and post it within 30 days. Ghost us? We donate part of your prepayment to charity. You're welcome.", tag: null },
+          ].map((s, i, arr) => (
+            <div key={s.step} className="flex gap-4">
+              {/* Timeline line + dot */}
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-sm shrink-0">
+                  {s.icon}
+                </div>
+                {i < arr.length - 1 && (
+                  <div className="w-px flex-1 bg-border my-1" />
+                )}
+              </div>
+              {/* Content */}
+              <div className={`pb-6 ${i === arr.length - 1 ? "" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-bold text-sm text-cream">{s.title}</h3>
+                  {s.tag && (
+                    <span className="text-[9px] text-accent bg-accent/10 border border-accent/30 px-1.5 py-0.5 rounded-full">{s.tag}</span>
+                  )}
+                </div>
+                <p className="text-cream-61 text-xs mt-1">{s.desc}</p>
+              </div>
+            </div>
           ))}
         </div>
       </section>
