@@ -413,7 +413,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       {!loading && recipes.length > 0 && (
         <section className="mt-16 text-center">
           <h2 className="font-display font-bold text-2xl text-cream mb-3">
-            Pick <span className="text-accent font-medium">three</span> videos or a bundle to get started
+            Pick <span className="text-accent font-medium">3+</span> videos to get started
           </h2>
           <p className="text-cream-61 text-sm mb-8 max-w-lg mx-auto">
             Your first order comes with two free sessions to make sure you actually know what you&apos;re doing.
