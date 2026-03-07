@@ -64,6 +64,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
   const [addingBundle, setAddingBundle] = useState<string | null>(null);
+  const [bundleModes, setBundleModes] = useState<Record<string, "donkey" | "creative">>({});
   const { user } = useAuth();
   const { addBundle } = useCart();
 
@@ -197,13 +198,18 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     { name: "Advanced Bundle", recipes: advancedRecipes, description: meta.advancedDescription },
   ];
 
-  function bundleTotal(rs: Recipe[]): number {
+  function bundleDonkeyTotal(rs: Recipe[]): number {
     return Math.round(rs.reduce((s, r) => s + r.price_cents, 0) / 100);
   }
 
+  function bundleCreativeTotal(rs: Recipe[]): number {
+    return Math.round(rs.reduce((s, r) => s + Math.round(r.price_cents * (1 + (r.creative_surcharge_percent ?? 25) / 100)), 0) / 100);
+  }
+
   async function handleAddBundle(rs: Recipe[], name: string) {
+    const mode = bundleModes[name] ?? "donkey";
     setAddingBundle(name);
-    await addBundle(rs.map((r) => r.id), name, 0);
+    await addBundle(rs.map((r) => r.id), name, 0, mode);
     setAddingBundle(null);
   }
 
@@ -551,19 +557,61 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   })}
                 </div>
 
-                {/* Footer: price left, button right */}
-                <div className="flex items-center justify-between pt-2">
-                  <span className="font-display font-bold text-2xl text-cream">
-                    &euro;{bundleTotal(bundle.recipes)}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={addingBundle === bundle.name}
-                    onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
-                  >
-                    Add bundle to cart
-                  </Button>
+                {/* Mode picker + price + add button */}
+                <div className="pt-4 border-t border-border/50">
+                  <div className="flex gap-3 mb-4">
+                    {([
+                      { mode: "creative" as const, label: "🎬 Full Production", desc: "We handle the creative direction" },
+                      { mode: "donkey" as const, label: "🫏 Donkey", desc: "You direct, we edit" },
+                    ]).map((opt) => {
+                      const selected = (bundleModes[bundle.name] ?? "donkey") === opt.mode;
+                      return (
+                        <button
+                          key={opt.mode}
+                          onClick={() => setBundleModes((prev) => ({ ...prev, [bundle.name]: opt.mode }))}
+                          className={`flex-1 rounded-brand p-3 text-left border transition-colors ${
+                            selected
+                              ? "border-accent bg-accent/10"
+                              : "border-border bg-surface hover:border-accent/30"
+                          }`}
+                        >
+                          <span className="text-xs font-medium text-cream block">{opt.label}</span>
+                          <span className="text-[10px] text-cream-31">{opt.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      {(bundleModes[bundle.name] ?? "donkey") === "creative" ? (
+                        <>
+                          <span className="font-display font-bold text-2xl text-cream">
+                            &euro;{bundleCreativeTotal(bundle.recipes)}
+                          </span>
+                          <span className="text-cream-31 text-[10px] block">
+                            starting at &euro;{bundleDonkeyTotal(bundle.recipes)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-display font-bold text-2xl text-cream">
+                            &euro;{bundleDonkeyTotal(bundle.recipes)}
+                          </span>
+                          <span className="text-cream-31 text-[10px] block">
+                            full production &euro;{bundleCreativeTotal(bundle.recipes)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={addingBundle === bundle.name}
+                      onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
+                    >
+                      Add bundle to cart
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}

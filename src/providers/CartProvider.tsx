@@ -65,7 +65,7 @@ type CartContextType = {
   toast: string | null;
   clearToast: () => void;
   addItem: (recipeId: string, extras?: AddItemExtras) => Promise<void>;
-  addBundle: (recipeIds: string[], bundleName: string, discountPct: number) => Promise<void>;
+  addBundle: (recipeIds: string[], bundleName: string, discountPct: number, mode?: "donkey" | "creative") => Promise<void>;
   removeBundle: (bundleId: string) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   updateItem: (itemId: string, updates: Partial<CartItem>) => Promise<void>;
@@ -495,10 +495,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function addBundle(recipeIds: string[], bundleName: string, discountPct: number) {
+  async function addBundle(recipeIds: string[], bundleName: string, discountPct: number, mode?: "donkey" | "creative") {
     const bundleId = crypto.randomUUID();
     for (const recipeId of recipeIds) {
-      await addItem(recipeId, { bundle_id: bundleId, bundle_name: bundleName, bundle_discount_pct: discountPct });
+      await addItem(recipeId, { bundle_id: bundleId, bundle_name: bundleName, bundle_discount_pct: discountPct, recipe_mode: mode });
     }
     triggerFlyToCart();
     setIsOpen(true);
