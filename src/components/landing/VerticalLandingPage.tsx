@@ -65,7 +65,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const [approvedCount, setApprovedCount] = useState(0);
   const [addingBundle, setAddingBundle] = useState<string | null>(null);
   const { user } = useAuth();
-  const { addItem } = useCart();
+  const { addBundle } = useCart();
 
   useEffect(() => {
     const supabase = createClient();
@@ -205,9 +205,9 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     return Math.round(bundleTotal(rs) * (1 - pct / 100));
   }
 
-  async function handleAddBundle(rs: Recipe[], name: string) {
+  async function handleAddBundle(rs: Recipe[], name: string, discountPct: number) {
     setAddingBundle(name);
-    for (const r of rs) await addItem(r.id);
+    await addBundle(rs.map((r) => r.id), name, discountPct);
     setAddingBundle(null);
   }
 
@@ -549,7 +549,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     variant="secondary"
                     size="sm"
                     loading={addingBundle === bundle.name}
-                    onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
+                    onClick={() => handleAddBundle(bundle.recipes, bundle.name, bundle.discountPct)}
                   >
                     Add bundle to cart
                   </Button>

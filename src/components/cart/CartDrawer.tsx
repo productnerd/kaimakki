@@ -26,6 +26,9 @@ type GroupedItem = {
   selected_use_case?: string;
   ids: string[];
   quantity: number;
+  bundle_id?: string;
+  bundle_name?: string;
+  bundle_discount_pct?: number;
 };
 
 function getExtrasTotal(g: {
@@ -42,8 +45,84 @@ function getExtrasTotal(g: {
   return extras;
 }
 
+function CartItemCard({ g, onRemove }: { g: GroupedItem; onRemove?: () => void }) {
+  const unitTotal = g.discounted_price_cents + getExtrasTotal(g);
+  const unitFull = g.price_cents + getExtrasTotal(g);
+  const lineTotal = unitTotal * g.quantity;
+  const lineFull = unitFull * g.quantity;
+  const hasDiscount = g.discount_pct > 0;
+
+  return (
+    <div className="bg-background rounded-brand p-4 border border-border">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h3 className="font-medium text-cream text-sm">
+            {g.quantity > 1 && (
+              <span className="text-accent mr-1.5">{g.quantity}x</span>
+            )}
+            <span className="mr-1">{getRecipeIcon(g.recipe_slug)}</span>{g.recipe_name}
+          </h3>
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              g.recipe_mode === "creative"
+                ? "text-accent bg-accent/10"
+                : "text-cream-31 bg-cream-20/30"
+            }`}>
+              {g.recipe_mode === "creative" ? "🎬 Full Production" : "🫏 Donkey"}
+            </span>
+            {g.selected_use_case && (
+              <span className="text-[10px] text-cream-61 bg-cream-20/30 px-1.5 py-0.5 rounded-full">
+                {g.selected_use_case}
+              </span>
+            )}
+            {g.needs_additional_format && (
+              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
+            )}
+            {g.needs_stock_footage && (
+              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+stock</span>
+            )}
+            {g.needs_ai_voice && (
+              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+AI voice</span>
+            )}
+            {g.needs_expedited && (
+              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+rush</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            {hasDiscount && (
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">
+                  -{g.discount_pct}%
+                </span>
+                <span className="font-display text-xs text-cream-31 line-through">
+                  &euro;{(lineFull / 100).toFixed(0)}
+                </span>
+              </div>
+            )}
+            <span className="font-display font-bold text-cream">
+              &euro;{(lineTotal / 100).toFixed(0)}
+            </span>
+          </div>
+          {onRemove && (
+            <button
+              onClick={onRemove}
+              className="text-cream-31 hover:text-red-400 transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CartDrawer() {
-  const { items, pricedItems, isOpen, closeCart, removeItem, itemCount, videoItemCount, isFirstTimeBuyer, toast, clearToast } = useCart();
+  const { items, pricedItems, isOpen, closeCart, removeItem, removeBundle, itemCount, videoItemCount, isFirstTimeBuyer, toast, clearToast } = useCart();
   const { user } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [guestEmail, setGuestEmail] = useState("");
@@ -84,7 +163,7 @@ export default function CartDrawer() {
       });
       continue;
     }
-    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.needs_expedited}|${item.discount_pct}|${item.recipe_mode}|${item.selected_use_case ?? ""}`;
+    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.needs_expedited}|${item.discount_pct}|${item.recipe_mode}|${item.selected_use_case ?? ""}|${item.bundle_id ?? ""}`;
     const existing = grouped.find((g) => g.key === key);
     if (existing) {
       existing.ids.push(item.id);
@@ -106,6 +185,9 @@ export default function CartDrawer() {
         selected_use_case: item.selected_use_case,
         ids: [item.id],
         quantity: 1,
+        bundle_id: item.bundle_id,
+        bundle_name: item.bundle_name,
+        bundle_discount_pct: item.bundle_discount_pct,
       });
     }
   }
@@ -114,6 +196,16 @@ export default function CartDrawer() {
   const videoGroups = grouped.filter((g) => g.recipe_type !== "session");
   const sessionGroups = grouped.filter((g) => g.recipe_type === "session");
   const sortedGroups = [...videoGroups, ...sessionGroups];
+
+  // Group bundle items by bundle_id
+  const bundleGroups: Record<string, { name: string; discountPct: number; items: GroupedItem[] }> = {};
+  for (const g of videoGroups) {
+    if (!g.bundle_id) continue;
+    if (!bundleGroups[g.bundle_id]) {
+      bundleGroups[g.bundle_id] = { name: g.bundle_name ?? "Bundle", discountPct: g.bundle_discount_pct ?? 0, items: [] };
+    }
+    bundleGroups[g.bundle_id].items.push(g);
+  }
 
   const subtotal = pricedItems
     .filter((i) => !SESSION_SLUGS.has(i.recipe_slug ?? ""))
@@ -255,83 +347,40 @@ export default function CartDrawer() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Video items */}
-              {videoGroups.map((g) => {
-                const unitTotal = g.discounted_price_cents + getExtrasTotal(g);
-                const unitFull = g.price_cents + getExtrasTotal(g);
-                const lineTotal = unitTotal * g.quantity;
-                const lineFull = unitFull * g.quantity;
-                const hasDiscount = g.discount_pct > 0;
+              {/* Standalone video items (not in a bundle) */}
+              {videoGroups.filter((g) => !g.bundle_id).map((g) => (
+                <CartItemCard key={g.key} g={g} onRemove={() => handleRemoveGroup(g.ids)} />
+              ))}
 
-                return (
-                  <div
-                    key={g.key}
-                    className="bg-background rounded-brand p-4 border border-border"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-cream text-sm">
-                          {g.quantity > 1 && (
-                            <span className="text-accent mr-1.5">{g.quantity}x</span>
-                          )}
-                          <span className="mr-1">{getRecipeIcon(g.recipe_slug)}</span>{g.recipe_name}
-                        </h3>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                            g.recipe_mode === "creative"
-                              ? "text-accent bg-accent/10"
-                              : "text-cream-31 bg-cream-20/30"
-                          }`}>
-                            {g.recipe_mode === "creative" ? "🎬 Full Production" : "🫏 Donkey"}
-                          </span>
-                          {g.selected_use_case && (
-                            <span className="text-[10px] text-cream-61 bg-cream-20/30 px-1.5 py-0.5 rounded-full">
-                              {g.selected_use_case}
-                            </span>
-                          )}
-                          {g.needs_additional_format && (
-                            <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+ratio</span>
-                          )}
-                          {g.needs_stock_footage && (
-                            <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+stock</span>
-                          )}
-                          {g.needs_ai_voice && (
-                            <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+AI voice</span>
-                          )}
-                          {g.needs_expedited && (
-                            <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+rush</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          {hasDiscount && (
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">
-                                -{g.discount_pct}%
-                              </span>
-                              <span className="font-display text-xs text-cream-31 line-through">
-                                &euro;{(lineFull / 100).toFixed(0)}
-                              </span>
-                            </div>
-                          )}
-                          <span className="font-display font-bold text-cream">
-                            &euro;{(lineTotal / 100).toFixed(0)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveGroup(g.ids)}
-                          className="text-cream-31 hover:text-red-400 transition-colors"
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
+              {/* Bundles */}
+              {Object.entries(bundleGroups).map(([bundleId, bundle]) => (
+                <div
+                  key={bundleId}
+                  className="rounded-brand p-4 border border-accent/30 bg-accent/5 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-display font-bold text-sm text-cream">
+                        {bundle.name}
+                      </h3>
+                      <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">
+                        {bundle.discountPct}% bundle discount
+                      </span>
                     </div>
+                    <button
+                      onClick={() => removeBundle(bundleId)}
+                      className="text-cream-31 hover:text-red-400 transition-colors"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
-                );
-              })}
+                  {bundle.items.map((g) => (
+                    <CartItemCard key={g.key} g={g} />
+                  ))}
+                </div>
+              ))}
 
               {/* Session items (free, non-removable) */}
               {sessionGroups.length > 0 && (

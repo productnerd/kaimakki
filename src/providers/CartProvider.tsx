@@ -35,6 +35,9 @@ export type CartItem = {
   needs_expedited: boolean;
   recipe_mode: string;
   selected_use_case?: string;
+  bundle_id?: string;
+  bundle_name?: string;
+  bundle_discount_pct?: number;
 };
 
 export type AddItemExtras = {
@@ -44,6 +47,9 @@ export type AddItemExtras = {
   needs_expedited?: boolean;
   recipe_mode?: "donkey" | "creative";
   selected_use_case?: string;
+  bundle_id?: string;
+  bundle_name?: string;
+  bundle_discount_pct?: number;
 };
 
 export type CartItemWithDiscount = CartItem & {
@@ -59,6 +65,8 @@ type CartContextType = {
   toast: string | null;
   clearToast: () => void;
   addItem: (recipeId: string, extras?: AddItemExtras) => Promise<void>;
+  addBundle: (recipeIds: string[], bundleName: string, discountPct: number) => Promise<void>;
+  removeBundle: (bundleId: string) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   updateItem: (itemId: string, updates: Partial<CartItem>) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -81,6 +89,8 @@ const CartContext = createContext<CartContextType>({
   toast: null,
   clearToast: () => {},
   addItem: async () => {},
+  addBundle: async () => {},
+  removeBundle: async () => {},
   removeItem: async () => {},
   updateItem: async () => {},
   clearCart: async () => {},
@@ -233,6 +243,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         recipe_type: recipe?.recipe_type as string | undefined,
         price_cents: effectivePrice,
         selected_use_case: item.selected_use_case as string | undefined,
+        bundle_id: item.bundle_id as string | undefined,
+        bundle_name: item.bundle_name as string | undefined,
+        bundle_discount_pct: item.bundle_discount_pct as number | undefined,
       };
     }) as CartItem[];
 
@@ -392,13 +405,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_expedited: extras?.needs_expedited ?? false,
         recipe_mode: mode,
         selected_use_case: extras?.selected_use_case,
+        bundle_id: extras?.bundle_id,
+        bundle_name: extras?.bundle_name,
+        bundle_discount_pct: extras?.bundle_discount_pct,
       };
 
       const updated = [...items, newItem];
       setItems(updated);
       saveGuestCart(updated);
-      triggerFlyToCart();
-      setIsOpen(true);
+      if (!extras?.bundle_id) {
+        triggerFlyToCart();
+        setIsOpen(true);
+      }
       return;
     }
 
@@ -455,6 +473,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_expedited: extras?.needs_expedited ?? false,
         recipe_mode: extras?.recipe_mode ?? "donkey",
         selected_use_case: extras?.selected_use_case ?? null,
+        bundle_id: extras?.bundle_id ?? null,
+        bundle_name: extras?.bundle_name ?? null,
+        bundle_discount_pct: extras?.bundle_discount_pct ?? 0,
       })
       .select()
       .single();
@@ -465,8 +486,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await ensureSessionItems();
       }
       await fetchCart();
-      triggerFlyToCart();
-      setIsOpen(true);
+      if (!extras?.bundle_id) {
+        triggerFlyToCart();
+        setIsOpen(true);
+      }
+    }
+  }
+
+  async function addBundle(recipeIds: string[], bundleName: string, discountPct: number) {
+    const bundleId = crypto.randomUUID();
+    for (const recipeId of recipeIds) {
+      await addItem(recipeId, { bundle_id: bundleId, bundle_name: bundleName, bundle_discount_pct: discountPct });
+    }
+    triggerFlyToCart();
+    setIsOpen(true);
+  }
+
+  async function removeBundle(bundleId: string) {
+    const bundleItems = items.filter((i) => i.bundle_id === bundleId);
+    for (const item of bundleItems) {
+      if (!user) {
+        // handled below
+      } else {
+        await supabase.from("cart_items").delete().eq("id", item.id);
+      }
+    }
+    if (!user) {
+      const remaining = items.filter((i) => i.bundle_id !== bundleId);
+      setItems(remaining);
+      saveGuestCart(remaining);
+    } else {
+      const remaining = items.filter((i) => i.bundle_id !== bundleId);
+      setItems(remaining);
+      // If no video items left, remove session items too
+      const remainingVideos = remaining.filter((i) => !sessionRecipeIdSet.has(i.recipe_id));
+      if (remainingVideos.length === 0 && isFirstTimeBuyer) {
+        await removeSessionItems();
+        setItems([]);
+      }
     }
   }
 
@@ -528,6 +585,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         toast,
         clearToast: () => setToast(null),
         addItem,
+        addBundle,
+        removeBundle,
         removeItem,
         updateItem,
         clearCart,
