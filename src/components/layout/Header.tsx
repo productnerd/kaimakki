@@ -74,12 +74,6 @@ export default function Header() {
             </div>
           ) : !loading ? (
             <>
-              <Link
-                href="/"
-                className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
-              >
-                VIDEO TEMPLATES
-              </Link>
               <div className="relative group">
                 <button className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors flex items-center gap-1">
                   INDUSTRIES
@@ -181,9 +175,6 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link href="/" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
-                VIDEO TEMPLATES
-              </Link>
               {VERTICAL_SLUGS.map((slug) => (
                 <Link
                   key={slug}
