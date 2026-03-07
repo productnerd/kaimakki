@@ -413,12 +413,46 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
         </div>
       </section>
 
-      {/* Pick three CTA */}
+      {/* Pick three CTA + freebies */}
       {!loading && recipes.length > 0 && (
         <section className="mt-16 text-center">
-          <h2 className="font-display font-bold text-2xl text-cream">
+          <h2 className="font-display font-bold text-2xl text-cream mb-3">
             Pick <span className="text-accent font-medium">three</span> videos or a bundle to get started
           </h2>
+          <p className="text-cream-61 text-sm mb-8 max-w-lg mx-auto">
+            Your first order comes with two free sessions to make sure you actually know what you&apos;re doing.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-sm text-cream">
+                  <span className="mr-1.5">🧠</span>Content Strategy Session
+                </h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
+                  <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
+                </div>
+              </div>
+              <p className="text-cream-61 text-xs">
+                We build your content strategy — topics, formats, posting schedule, the works.
+              </p>
+            </div>
+            <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-sm text-cream">
+                  <span className="mr-1.5">🎨</span>Branding Session
+                </h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
+                  <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
+                </div>
+              </div>
+              <p className="text-cream-61 text-xs">
+                We nail your brand voice, visual style, and audience positioning.
+              </p>
+            </div>
+          </div>
+          <p className="text-cream-31 text-[10px] mt-3">&euro;300 value — included free with your first order of 3+ videos</p>
         </section>
       )}
 
