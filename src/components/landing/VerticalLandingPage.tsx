@@ -198,12 +198,41 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
     { name: "Advanced Bundle", recipes: advancedRecipes, description: meta.advancedDescription },
   ];
 
-  function bundleDonkeyTotal(rs: Recipe[]): number {
-    return Math.round(rs.reduce((s, r) => s + r.price_cents, 0) / 100);
-  }
+  // Calculate bundle price with tier discounts applied (same logic as cart)
+  function bundleWithTierDiscount(rs: Recipe[], mode: "donkey" | "creative"): { total: number; beforeDiscount: number; savedCount: number } {
+    const baseApproved = user ? approvedCount : 0;
 
-  function bundleCreativeTotal(rs: Recipe[]): number {
-    return Math.round(rs.reduce((s, r) => s + Math.round(r.price_cents * (1 + (r.creative_surcharge_percent ?? 25) / 100)), 0) / 100);
+    // Get per-item price
+    const prices = rs.map((r) =>
+      mode === "creative"
+        ? Math.round(r.price_cents * (1 + (r.creative_surcharge_percent ?? 25) / 100))
+        : r.price_cents
+    );
+
+    // Calculate discount slot for each position
+    const slots = rs.map((_, i) => {
+      const videoNumber = baseApproved + i + 1;
+      let pct = 0;
+      for (const ms of milestones) {
+        if (videoNumber >= ms.min_videos) pct = Math.max(pct, ms.discount_percent);
+      }
+      return pct;
+    });
+
+    // Assign highest discounts to most expensive items
+    const sortedSlots = [...slots].sort((a, b) => b - a);
+    const indexed = prices.map((p, i) => ({ price: p, origIndex: i }));
+    const byPrice = [...indexed].sort((a, b) => b.price - a.price);
+    const assignedPcts = new Array<number>(rs.length).fill(0);
+    byPrice.forEach((entry, rank) => {
+      assignedPcts[entry.origIndex] = sortedSlots[rank] ?? 0;
+    });
+
+    const beforeDiscount = prices.reduce((s, p) => s + p, 0);
+    const total = prices.reduce((s, p, i) => s + Math.round(p * (1 - assignedPcts[i] / 100)), 0);
+    const savedCount = assignedPcts.filter((p) => p > 0).length;
+
+    return { total: Math.round(total / 100), beforeDiscount: Math.round(beforeDiscount / 100), savedCount };
   }
 
   async function handleAddBundle(rs: Recipe[], name: string) {
@@ -582,27 +611,37 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                     })}
                   </div>
                   <div className="flex items-center justify-between">
-                    <div>
-                      {(bundleModes[bundle.name] ?? "creative") === "creative" ? (
-                        <>
-                          <span className="font-display font-bold text-2xl text-cream">
-                            &euro;{bundleCreativeTotal(bundle.recipes)}
-                          </span>
+                    {(() => {
+                      const mode = (bundleModes[bundle.name] ?? "creative");
+                      const selected = bundleWithTierDiscount(bundle.recipes, mode);
+                      const other = bundleWithTierDiscount(bundle.recipes, mode === "creative" ? "donkey" : "creative");
+                      const hasTierDiscount = selected.total < selected.beforeDiscount;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {hasTierDiscount && (
+                              <span className="font-display text-sm text-cream-31 line-through">
+                                &euro;{selected.beforeDiscount}
+                              </span>
+                            )}
+                            <span className="font-display font-bold text-2xl text-cream">
+                              &euro;{selected.total}
+                            </span>
+                            {hasTierDiscount && (
+                              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">
+                                {selected.savedCount} videos with tier discount
+                              </span>
+                            )}
+                          </div>
                           <span className="text-cream-31 text-[10px] block">
-                            starting at &euro;{bundleDonkeyTotal(bundle.recipes)}
+                            {mode === "creative"
+                              ? `starting at €${other.total}`
+                              : `full production €${other.total}`
+                            }
                           </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-display font-bold text-2xl text-cream">
-                            &euro;{bundleDonkeyTotal(bundle.recipes)}
-                          </span>
-                          <span className="text-cream-31 text-[10px] block">
-                            full production &euro;{bundleCreativeTotal(bundle.recipes)}
-                          </span>
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      );
+                    })()}
                     <Button
                       variant="secondary"
                       size="sm"
