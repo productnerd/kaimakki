@@ -207,7 +207,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   }
 
   async function handleAddBundle(rs: Recipe[], name: string) {
-    const mode = bundleModes[name] ?? "donkey";
+    const mode = bundleModes[name] ?? "creative";
     setAddingBundle(name);
     await addBundle(rs.map((r) => r.id), name, 0, mode);
     setAddingBundle(null);
@@ -564,7 +564,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                       { mode: "creative" as const, label: "🎬 Full Production", desc: "We handle the creative direction" },
                       { mode: "donkey" as const, label: "🫏 Donkey", desc: "You direct, we edit" },
                     ]).map((opt) => {
-                      const selected = (bundleModes[bundle.name] ?? "donkey") === opt.mode;
+                      const selected = (bundleModes[bundle.name] ?? "creative") === opt.mode;
                       return (
                         <button
                           key={opt.mode}
@@ -583,7 +583,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      {(bundleModes[bundle.name] ?? "donkey") === "creative" ? (
+                      {(bundleModes[bundle.name] ?? "creative") === "creative" ? (
                         <>
                           <span className="font-display font-bold text-2xl text-cream">
                             &euro;{bundleCreativeTotal(bundle.recipes)}
@@ -658,8 +658,8 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           </div>
           <div className="relative ml-4 border border-accent/20 rounded-brand p-5 pl-8 mb-2">
             {/* Loop label */}
-            <div className="absolute -top-3 left-4 bg-accent/10 border border-accent/30 rounded-full px-3 py-0.5">
-              <span className="text-[10px] text-accent font-medium">↩ Pick more videos &amp; repeat</span>
+            <div className="absolute -top-3 left-4 bg-accent border border-accent rounded-full px-3 py-0.5">
+              <span className="text-[10px] text-background font-medium">↩ Pick more videos &amp; repeat</span>
             </div>
 
             {[
