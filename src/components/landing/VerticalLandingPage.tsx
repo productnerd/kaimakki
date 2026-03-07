@@ -422,7 +422,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
             <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display font-bold text-sm text-cream">
-                  <span className="mr-1.5">🧠</span>Content Strategy Session
+                  <span className="mr-1.5">🧠</span>1-on-1 Content Strategy Session
                 </h3>
                 <div className="flex items-center gap-1.5">
                   <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
@@ -442,7 +442,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
             <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display font-bold text-sm text-cream">
-                  <span className="mr-1.5">🎨</span>Branding Session
+                  <span className="mr-1.5">🎨</span>Video Branding Guidelines
                 </h3>
                 <div className="flex items-center gap-1.5">
                   <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
