@@ -410,9 +410,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         bundle_discount_pct: extras?.bundle_discount_pct,
       };
 
-      const updated = [...items, newItem];
-      setItems(updated);
-      saveGuestCart(updated);
+      setItems((prev) => {
+        const updated = [...prev, newItem];
+        saveGuestCart(updated);
+        return updated;
+      });
       if (!extras?.bundle_id) {
         triggerFlyToCart();
         setIsOpen(true);
