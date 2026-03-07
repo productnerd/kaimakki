@@ -536,36 +536,38 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                             </div>
                           </div>
 
-                          {/* Name + description */}
-                          <h4 className="font-display font-bold text-xs text-white mb-1 leading-tight">
+                          {/* Name */}
+                          <h4 className="font-display font-bold text-xs text-white leading-tight">
                             <span className="mr-1">{getRecipeIcon(recipe.slug)}</span>
                             {recipe.name}
                           </h4>
-                          <p className="text-white/60 text-[10px] line-clamp-3">
-                            {recipe.description}
-                          </p>
 
                           {/* Spacer */}
                           <div className="flex-1" />
 
-                          {/* Bottom: use cases only */}
-                          {recipe.recipe_use_cases.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {recipe.recipe_use_cases.map((uc) => (
-                                <span
-                                  key={uc.id}
-                                  className={`text-[9px] px-1 py-0.5 rounded-full ${
-                                    uc.isRecommended
-                                      ? "text-accent bg-accent/10 border border-accent/30"
-                                      : "text-white/70 bg-white/10 border border-white/10"
-                                  }`}
-                                >
-                                  {uc.isRecommended && <span className="mr-0.5">⭐</span>}
-                                  {uc.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {/* Bottom: max 3 use cases, starred first */}
+                          {recipe.recipe_use_cases.length > 0 && (() => {
+                            const sorted = [...recipe.recipe_use_cases].sort((a, b) =>
+                              a.isRecommended === b.isRecommended ? 0 : a.isRecommended ? -1 : 1
+                            );
+                            return (
+                              <div className="flex flex-wrap gap-1">
+                                {sorted.slice(0, 3).map((uc) => (
+                                  <span
+                                    key={uc.id}
+                                    className={`text-[9px] px-1 py-0.5 rounded-full ${
+                                      uc.isRecommended
+                                        ? "text-accent bg-accent/10 border border-accent/30"
+                                        : "text-white/70 bg-white/10 border border-white/10"
+                                    }`}
+                                  >
+                                    {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                                    {uc.name}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
