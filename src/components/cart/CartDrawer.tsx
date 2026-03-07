@@ -359,14 +359,9 @@ export default function CartDrawer() {
                   className="rounded-brand p-4 border border-accent/30 bg-accent/5 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-display font-bold text-sm text-cream">
-                        {bundle.name}
-                      </h3>
-                      <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">
-                        {bundle.discountPct}% bundle discount
-                      </span>
-                    </div>
+                    <h3 className="font-display font-bold text-sm text-cream">
+                      {bundle.name}
+                    </h3>
                     <button
                       onClick={() => removeBundle(bundleId)}
                       className="text-cream-31 hover:text-red-400 transition-colors"

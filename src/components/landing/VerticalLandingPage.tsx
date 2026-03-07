@@ -193,21 +193,17 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
   const advancedRecipes = pickBundleRecipes(8);
 
   const bundles = [
-    { name: "Starter Bundle", discountPct: 10, recipes: starterRecipes, description: meta.starterDescription },
-    { name: "Advanced Bundle", discountPct: 15, recipes: advancedRecipes, description: meta.advancedDescription },
+    { name: "Starter Bundle", recipes: starterRecipes, description: meta.starterDescription },
+    { name: "Advanced Bundle", recipes: advancedRecipes, description: meta.advancedDescription },
   ];
 
   function bundleTotal(rs: Recipe[]): number {
     return Math.round(rs.reduce((s, r) => s + r.price_cents, 0) / 100);
   }
 
-  function bundleDiscounted(rs: Recipe[], pct: number): number {
-    return Math.round(bundleTotal(rs) * (1 - pct / 100));
-  }
-
-  async function handleAddBundle(rs: Recipe[], name: string, discountPct: number) {
+  async function handleAddBundle(rs: Recipe[], name: string) {
     setAddingBundle(name);
-    await addBundle(rs.map((r) => r.id), name, discountPct);
+    await addBundle(rs.map((r) => r.id), name, 0);
     setAddingBundle(null);
   }
 
@@ -472,17 +468,12 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                       {bundle.name}
                     </h3>
                     <Badge variant="accent">{bundle.recipes.length} videos</Badge>
-                    <Badge variant="lime">{bundle.discountPct}% off</Badge>
                   </div>
                   <p className="text-cream-61 text-sm">{bundle.description}</p>
                 </div>
 
                 {/* Recipe cards grid — same card as main grid, no price/+ button */}
-                <div className={`grid grid-cols-1 gap-4 mb-4 ${
-                  bundle.recipes.length <= 4
-                    ? "md:grid-cols-2 lg:grid-cols-4"
-                    : "md:grid-cols-4 lg:grid-cols-8"
-                }`}>
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
                   {bundle.recipes.map((recipe) => {
                     const thumbnail = getThumbnailUrl(recipe);
                     const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
@@ -571,19 +562,14 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
 
                 {/* Footer: price left, button right */}
                 <div className="flex items-center justify-between pt-2">
-                  <div>
-                    <span className="font-display text-sm text-cream-31 line-through block">
-                      &euro;{bundleTotal(bundle.recipes)}
-                    </span>
-                    <span className="font-display font-bold text-2xl text-cream">
-                      &euro;{bundleDiscounted(bundle.recipes, bundle.discountPct)}
-                    </span>
-                  </div>
+                  <span className="font-display font-bold text-2xl text-cream">
+                    &euro;{bundleTotal(bundle.recipes)}
+                  </span>
                   <Button
                     variant="secondary"
                     size="sm"
                     loading={addingBundle === bundle.name}
-                    onClick={() => handleAddBundle(bundle.recipes, bundle.name, bundle.discountPct)}
+                    onClick={() => handleAddBundle(bundle.recipes, bundle.name)}
                   >
                     Add bundle to cart
                   </Button>
