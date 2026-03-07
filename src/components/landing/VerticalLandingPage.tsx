@@ -545,29 +545,6 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                           {/* Spacer */}
                           <div className="flex-1" />
 
-                          {/* Bottom: max 3 use cases, starred first */}
-                          {recipe.recipe_use_cases.length > 0 && (() => {
-                            const sorted = [...recipe.recipe_use_cases].sort((a, b) =>
-                              a.isRecommended === b.isRecommended ? 0 : a.isRecommended ? -1 : 1
-                            );
-                            return (
-                              <div className="flex flex-wrap gap-1">
-                                {sorted.slice(0, 3).map((uc) => (
-                                  <span
-                                    key={uc.id}
-                                    className={`text-[9px] px-1 py-0.5 rounded-full ${
-                                      uc.isRecommended
-                                        ? "text-accent bg-accent/10 border border-accent/30"
-                                        : "text-white/70 bg-white/10 border border-white/10"
-                                    }`}
-                                  >
-                                    {uc.isRecommended && <span className="mr-0.5">⭐</span>}
-                                    {uc.name}
-                                  </span>
-                                ))}
-                              </div>
-                            );
-                          })()}
                         </div>
                       </div>
                     );
@@ -634,7 +611,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           <div className="relative ml-4 border border-accent/20 rounded-brand p-5 pl-8 mb-2">
             {/* Loop label */}
             <div className="absolute -top-3 left-4 bg-accent/10 border border-accent/30 rounded-full px-3 py-0.5">
-              <span className="text-[10px] text-accent font-medium">🔁 Repeat for every video</span>
+              <span className="text-[10px] text-accent font-medium">↩ Pick more videos &amp; repeat</span>
             </div>
 
             {[
@@ -660,10 +637,6 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
               </div>
             ))}
 
-            {/* Loop-back arrow */}
-            <div className="absolute -bottom-3 right-4 bg-accent/10 border border-accent/30 rounded-full px-3 py-0.5">
-              <span className="text-[10px] text-accent font-medium">↩ Pick more videos &amp; repeat</span>
-            </div>
           </div>
         </div>
       </section>
