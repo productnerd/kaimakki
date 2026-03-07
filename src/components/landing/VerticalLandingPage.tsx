@@ -444,7 +444,11 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                 </div>
 
                 {/* Recipe cards grid — same card as main grid, no price/+ button */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className={`grid grid-cols-1 gap-4 mb-4 ${
+                  bundle.recipes.length <= 4
+                    ? "md:grid-cols-2 lg:grid-cols-4"
+                    : "md:grid-cols-4 lg:grid-cols-8"
+                }`}>
                   {bundle.recipes.map((recipe) => {
                     const thumbnail = getThumbnailUrl(recipe);
                     const effectiveDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
