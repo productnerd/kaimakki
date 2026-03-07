@@ -697,8 +697,8 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           </div>
           <div className="relative ml-4 border border-accent/20 rounded-brand p-5 pl-8 mb-2">
             {/* Loop label */}
-            <div className="absolute -top-3 left-4 bg-accent border border-accent rounded-full px-3 py-0.5">
-              <span className="text-[10px] text-background font-medium">↩ Pick more videos &amp; repeat</span>
+            <div className="absolute -top-3 left-4 bg-accent border border-accent rounded-full px-3 py-0.5 flex items-center">
+              <span className="text-[10px] text-background font-medium leading-none">↩ Pick more videos &amp; repeat</span>
             </div>
 
             {[
