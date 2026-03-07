@@ -420,7 +420,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
             <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display font-bold text-sm text-cream">
                   <span className="mr-1.5">🧠</span>Content Strategy Session
                 </h3>
@@ -429,12 +429,18 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
                 </div>
               </div>
-              <p className="text-cream-61 text-xs">
-                We build your content strategy — topics, formats, posting schedule, the works.
-              </p>
+              <ul className="text-cream-61 text-xs space-y-1.5">
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Content pillars definition</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Audience definition &amp; targeting</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Topic &amp; video ideas list</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Posting cadence &amp; schedule</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Platform strategy</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Competitor &amp; trend analysis</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Hook &amp; CTA frameworks</li>
+              </ul>
             </div>
             <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display font-bold text-sm text-cream">
                   <span className="mr-1.5">🎨</span>Branding Session
                 </h3>
@@ -443,9 +449,15 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
                 </div>
               </div>
-              <p className="text-cream-61 text-xs">
-                We nail your brand voice, visual style, and audience positioning.
-              </p>
+              <ul className="text-cream-61 text-xs space-y-1.5">
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Brand voice &amp; communication style</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Visual style &amp; colour palette</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Typography &amp; text treatments</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Animation &amp; transition style</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Image &amp; footage direction</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Pacing &amp; rhythm guidelines</li>
+                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Music &amp; sound direction</li>
+              </ul>
             </div>
           </div>
           <p className="text-cream-31 text-[10px] mt-3">&euro;300 value — included free with your first order of 3+ videos</p>
