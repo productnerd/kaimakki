@@ -601,15 +601,14 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           {[
             { step: "1", icon: "🛒", title: "Pick your videos", desc: "Choose 3+ video recipes that fit your goals. Mix and match, or grab a bundle.", tag: null },
             { step: "2", icon: "📋", title: "Fill in the questionnaire", desc: "Answer a few questions about your brand, audience, and goals so we know what we're working with.", tag: null },
-            { step: "3", icon: "🧠", title: "Strategy session", desc: "A 1-on-1 call with a real human. We map out your content pillars, topics, posting cadence, and game plan.", tag: "First order" },
+            { step: "3", icon: "🧠", title: "Strategy session + meet your account manager", desc: "A 1-on-1 call with a real human. We map out your content pillars, topics, posting cadence, and game plan. You also get a dedicated account manager and a direct channel — questions, feedback, weird requests — they've got you.", tag: "First order" },
             { step: "4", icon: "🎨", title: "Video branding guidelines", desc: "We deliver your brand playbook — visual style, colours, animation style, pacing, music direction. The whole thing.", tag: "First order" },
             { step: "5", icon: "📅", title: "Content calendar", desc: "Your personal strategy dashboard goes live with a content calendar and all the video ideas from your session.", tag: "First order" },
-            { step: "6", icon: "👤", title: "Meet your account manager", desc: "You get a dedicated human and a direct channel. Questions, feedback, weird requests — they've got you.", tag: null },
-            { step: "7", icon: "🎬", title: "Film your footage", desc: "We send you a shot list for each video. You film on your phone. No fancy gear needed.", tag: null },
-            { step: "8", icon: "📤", title: "Send us the footage", desc: "Upload your clips. We take it from here.", tag: null },
-            { step: "9", icon: "✂️", title: "We edit", desc: "Our editors turn your footage into scroll-stoppers using your branding guidelines.", tag: null },
-            { step: "10", icon: "🔄", title: "Review + 1 free revision", desc: "Watch your video. Don't love something? Give feedback and we'll revise it once — on us.", tag: null },
-            { step: "11", icon: "🚀", title: "You post (or else)", desc: "Get your final video and post it within 30 days. Ghost us? We donate part of your prepayment to charity. You're welcome.", tag: null },
+            { step: "6", icon: "🎬", title: "Film your footage", desc: "We send you a shot list for each video. You film on your phone. No fancy gear needed.", tag: null },
+            { step: "7", icon: "📤", title: "Send us the footage", desc: "Upload your clips. We take it from here.", tag: null },
+            { step: "8", icon: "✂️", title: "We edit", desc: "Our editors turn your footage into scroll-stoppers using your branding guidelines.", tag: null },
+            { step: "9", icon: "🔄", title: "Review + 1 free revision", desc: "Watch your video. Don't love something? Give feedback and we'll revise it once — on us.", tag: null },
+            { step: "10", icon: "🚀", title: "You post (or else)", desc: "Get your final video and post it within 30 days. Ghost us? We donate part of your prepayment to charity. You're welcome.", tag: null },
           ].map((s, i, arr) => (
             <div key={s.step} className="flex gap-4">
               {/* Timeline line + dot */}
