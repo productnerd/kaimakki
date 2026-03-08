@@ -112,7 +112,7 @@ export default function OnboardingPage() {
 
   function canAdvance(): boolean {
     if (step === 1) return name.trim() !== "" && phoneNumber.trim() !== "";
-    if (step === 2) return brandName.trim() !== "";
+    if (step === 2) return brandName.trim() !== "" && channels.length > 0;
     return true;
   }
 
@@ -283,9 +283,12 @@ export default function OnboardingPage() {
 
               {/* Social channels */}
               <div>
-                <label className="block text-sm font-medium text-cream mb-3">
+                <label className="block text-sm font-medium text-cream mb-1">
                   Social channels
                 </label>
+                <p className="text-cream-31 text-[10px] mb-3">
+                  The platforms you want to start publishing content on.
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {SOCIAL_CHANNELS.map((ch) => {
                     const active = channels.includes(ch.id);
