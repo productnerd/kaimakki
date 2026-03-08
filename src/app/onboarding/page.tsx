@@ -223,15 +223,6 @@ export default function OnboardingPage() {
           {/* Step 1: Personal Info */}
           {step === 1 && (
             <div className="flex flex-col gap-5">
-              <div>
-                <h1 className="font-display font-bold text-2xl text-cream mb-1">
-                  Personal info
-                </h1>
-                <p className="text-cream-61 text-sm">
-                  Tell us a bit about yourself.
-                </p>
-              </div>
-
               <Input
                 label="Name"
                 placeholder="Your name"
@@ -256,6 +247,9 @@ export default function OnboardingPage() {
                     required
                   />
                 </div>
+                <p className="text-cream-31 text-[10px] mt-1.5">
+                  We use this to set up your direct chat with your account manager.
+                </p>
               </div>
             </div>
           )}
