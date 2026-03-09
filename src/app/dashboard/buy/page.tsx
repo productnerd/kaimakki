@@ -28,7 +28,7 @@ type Recipe = {
   creative_surcharge_percent: number;
   example_urls: string[];
   recipe_use_cases: { id: string; name: string }[];
-  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
+  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; price_percent: number | null; max_quantity: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
 };
 
 
@@ -77,7 +77,7 @@ export default function BuyVideosPage() {
     Promise.all([
       supabase
         .from("video_recipes")
-        .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, unlock_addon_key, unlock_requires_landscape, sort_order)")
+        .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, price_percent, max_quantity, unlock_addon_key, unlock_requires_landscape, sort_order)")
         .eq("is_active", true)
         .eq("recipe_type", "video")
         .order("sort_order"),
@@ -176,7 +176,7 @@ export default function BuyVideosPage() {
           {hasPendingUpgrade && (
             <div className="p-3 rounded-brand bg-amber-500/10 border border-amber-500/20 mb-3">
               <p className="text-amber-400 text-xs font-medium">
-                Proof submitted — waiting for review
+                Proof submitted - waiting for review
               </p>
             </div>
           )}
@@ -214,7 +214,7 @@ export default function BuyVideosPage() {
           <span className="text-lg">🔓</span>
           <div>
             <p className="text-cream font-display font-bold text-sm">You&apos;re a {unlock.tier}</p>
-            <p className="text-lime text-xs">Maximum tier unlocked — {userDiscountPct}% off everything, forever</p>
+            <p className="text-lime text-xs">Maximum tier unlocked - {userDiscountPct}% off everything, forever</p>
           </div>
         </div>
       )}
@@ -233,7 +233,7 @@ export default function BuyVideosPage() {
             ))
           : (
             <>
-              {/* Unlocked recipes — full cards */}
+              {/* Unlocked recipes - full cards */}
               {unlockedRecipes.map((recipe) => (
                 <Card
                   key={recipe.id}
@@ -310,7 +310,7 @@ export default function BuyVideosPage() {
                 </Card>
               ))}
 
-              {/* Locked recipes — teaser cards */}
+              {/* Locked recipes - teaser cards */}
               {lockedRecipes.map((recipe) => {
                 const videosNeeded = recipe.min_tier_videos - lifetimeCount;
                 return (
@@ -345,7 +345,7 @@ export default function BuyVideosPage() {
                 );
               })}
 
-              {/* Request Custom Video card — only if unlocked */}
+              {/* Request Custom Video card - only if unlocked */}
               {unlock.customRequestsUnlocked ? (
                 <Card
                   hover

@@ -209,7 +209,7 @@ export default function DashboardPage() {
                   </>
                 )}
 
-                {/* Buy more videos card — only in Needs Brief column */}
+                {/* Buy more videos card - only in Needs Brief column */}
                 {col.title === "Needs Brief" && (
                   <Link
                     href="/dashboard/buy"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { useCart } from "@/providers/CartProvider";
@@ -12,6 +12,8 @@ type RecipeAddon = {
   label: string;
   sublabel: string | null;
   price_cents: number;
+  price_percent: number | null;
+  max_quantity: number;
   unlock_addon_key: string | null;
   unlock_requires_landscape: boolean;
   sort_order: number;
@@ -67,14 +69,9 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
   const [showExamples, setShowExamples] = useState(false);
   const [selectedUseCase, setSelectedUseCase] = useState<string | null>(null);
   const [customUseCase, setCustomUseCase] = useState("");
+  const [extraDurationQty, setExtraDurationQty] = useState(0);
 
-  // Clear use case selection when switching to Full Production
-  useEffect(() => {
-    if (mode === "creative") {
-      setSelectedUseCase(null);
-      setCustomUseCase("");
-    }
-  }, [mode]);
+  // No longer clearing use case on mode switch - Full Production allows optional use case selection
 
   if (!recipe) return null;
 
@@ -109,10 +106,11 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
     return addon.addon_key in tierOverrides && tierOverrides[addon.addon_key] !== addon.price_cents;
   }
 
-  // Split addons: base price > 0 = Extras, base price = 0 = Preferences
-  // Exception: if tier override made a paid addon free, it stays in Extras
-  const paidAddons = addons.filter((a) => a.price_cents > 0);
-  const freeAddons = addons.filter((a) => a.price_cents === 0);
+  // Split addons: paid fixed-price = Extras, free = Preferences, percentage-based handled separately
+  const percentAddon = addons.find((a) => a.price_percent != null);
+  const fixedAddons = addons.filter((a) => a.price_percent == null);
+  const paidAddons = fixedAddons.filter((a) => a.price_cents > 0);
+  const freeAddons = fixedAddons.filter((a) => a.price_cents === 0);
 
   const tierIndex = unlockState ? getTierIndex(unlockState.tier, milestones) : 0;
   const effectiveMaxDuration = getEffectiveDuration(recipe.base_output_seconds, tierIndex);
@@ -120,13 +118,15 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
 
   const creativeSurcharge = recipe.creative_surcharge_percent ?? 25;
   const cartFieldKey = (addon: RecipeAddon) => ADDON_KEY_TO_CART_FIELD[addon.addon_key] ?? addon.addon_key;
-  const extrasTotal = addons.reduce((sum, a) => {
+  const fixedExtrasTotal = fixedAddons.reduce((sum, a) => {
     const field = cartFieldKey(a);
     if (!extras[field] || !isAddonUnlocked(a)) return sum;
     return sum + getEffectivePrice(a) / 100;
   }, 0);
   const rawBase = recipe.price_cents / 100;
   const basePrice = mode === "creative" ? Math.round(rawBase * (1 + creativeSurcharge / 100)) : rawBase;
+  const percentAddonTotal = percentAddon ? Math.round(rawBase * (percentAddon.price_percent! / 100) * extraDurationQty) : 0;
+  const extrasTotal = fixedExtrasTotal + percentAddonTotal;
   const discountedBase = Math.round(basePrice * (1 - userDiscountPct / 100));
   const totalPrice = discountedBase + extrasTotal;
   const fullPrice = basePrice + extrasTotal;
@@ -148,10 +148,12 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
       needs_stock_footage: extras.needs_stock_footage ?? false,
       needs_ai_voice: extras.needs_ai_voice ?? false,
       needs_expedited: extras.needs_expedited ?? false,
+      extra_duration_qty: extraDurationQty,
       recipe_mode: mode,
       selected_use_case: resolvedUseCase || undefined,
     });
     setExtras({});
+    setExtraDurationQty(0);
     setSelectedUseCase(null);
     setCustomUseCase("");
     onClose();
@@ -176,7 +178,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               <span className="text-[10px] text-accent ml-2">{getAddonUnlockLabel(addon)}</span>
             </div>
           </div>
-          <span className="text-sm font-medium text-cream-31">+&euro;{(addon.price_cents / 100).toFixed(0)}</span>
+          <span className="text-sm font-medium text-cream-31 pr-2">+&euro;{(addon.price_cents / 100).toFixed(0)}</span>
         </div>
       );
     }
@@ -215,7 +217,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             {addon.sublabel && <span className="text-xs text-cream-31 ml-2">{addon.sublabel}</span>}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right pr-2">
           {hasOverride && (
             <span className="text-xs text-cream-31 line-through mr-2">
               +&euro;{(addon.price_cents / 100).toFixed(0)}
@@ -313,53 +315,39 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
               )}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {mode === "donkey" ? (
-                <>
-                  {useCases.map((uc) => (
-                    <button
-                      key={uc.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedUseCase(selectedUseCase === uc.name ? null : uc.name);
-                        setCustomUseCase("");
-                      }}
-                      className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
-                        selectedUseCase === uc.name
-                          ? "border-accent/50 bg-accent/10 text-cream"
-                          : "border-border bg-background/50 text-cream-61 hover:border-border/80"
-                      }`}
-                    >
-                      {uc.isRecommended && <span className="mr-0.5">⭐</span>}
-                      {uc.name}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedUseCase(selectedUseCase === "__other__" ? null : "__other__");
-                    }}
-                    className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
-                      selectedUseCase === "__other__"
-                        ? "border-accent/50 bg-accent/10 text-cream"
-                        : "border-border bg-background/50 text-cream-61 hover:border-border/80"
-                    }`}
-                  >
-                    Other
-                  </button>
-                </>
-              ) : (
-                useCases.map((uc) => (
-                  <span
-                    key={uc.id}
-                    className="text-sm px-3 py-1.5 rounded-brand border border-border bg-background/50 text-cream-61"
-                  >
-                    {uc.isRecommended && <span className="mr-0.5">⭐</span>}
-                    {uc.name}
-                  </span>
-                ))
-              )}
+              {useCases.map((uc) => (
+                <button
+                  key={uc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedUseCase(selectedUseCase === uc.name ? null : uc.name);
+                    setCustomUseCase("");
+                  }}
+                  className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                    selectedUseCase === uc.name
+                      ? "border-accent/50 bg-accent/10 text-cream"
+                      : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                  }`}
+                >
+                  {uc.isRecommended && <span className="mr-0.5">⭐</span>}
+                  {uc.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUseCase(selectedUseCase === "__other__" ? null : "__other__");
+                }}
+                className={`text-sm px-3 py-1.5 rounded-brand border transition-colors ${
+                  selectedUseCase === "__other__"
+                    ? "border-accent/50 bg-accent/10 text-cream"
+                    : "border-border bg-background/50 text-cream-61 hover:border-border/80"
+                }`}
+              >
+                Other
+              </button>
             </div>
-            {mode === "donkey" && selectedUseCase === "__other__" && (
+            {selectedUseCase === "__other__" && (
               <input
                 type="text"
                 value={customUseCase}
@@ -452,7 +440,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           </button>
         </div>
 
-        {/* What you provide / What you get — side by side */}
+        {/* What you provide / What you get - side by side */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-background/50 rounded-brand p-4 border border-border">
             <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
@@ -522,13 +510,57 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
         </div>
 
         {/* Extras (paid addons) */}
-        {paidAddons.length > 0 && (
+        {(paidAddons.length > 0 || percentAddon) && (
           <div>
             <h3 className="font-display font-bold text-xs text-cream-78 uppercase tracking-wider mb-3">
               Extras
             </h3>
             <div className="space-y-2">
               {paidAddons.map(renderAddonRow)}
+              {/* Stackable percentage-based addon */}
+              {percentAddon && (
+                <div
+                  className={`flex items-center justify-between p-3 rounded-brand border transition-colors ${
+                    extraDurationQty > 0
+                      ? "border-accent/50 bg-accent/5"
+                      : "border-border bg-background/50"
+                  }`}
+                >
+                  <div>
+                    <span className="text-sm text-cream">{percentAddon.label}</span>
+                    <span className="text-xs text-cream-31 ml-2">{percentAddon.sublabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2 pr-2">
+                    <span className="text-xs text-cream-31">
+                      +{percentAddon.price_percent}% each
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setExtraDurationQty(Math.max(0, extraDurationQty - 1))}
+                        className="w-6 h-6 rounded-full border border-border text-cream-61 text-xs flex items-center justify-center hover:border-accent/50 transition-colors disabled:opacity-30"
+                        disabled={extraDurationQty === 0}
+                      >
+                        −
+                      </button>
+                      <span className="text-sm font-medium text-cream w-4 text-center">{extraDurationQty}</span>
+                      <button
+                        type="button"
+                        onClick={() => setExtraDurationQty(Math.min(percentAddon.max_quantity, extraDurationQty + 1))}
+                        className="w-6 h-6 rounded-full border border-border text-cream-61 text-xs flex items-center justify-center hover:border-accent/50 transition-colors disabled:opacity-30"
+                        disabled={extraDurationQty >= percentAddon.max_quantity}
+                      >
+                        +
+                      </button>
+                    </div>
+                    {extraDurationQty > 0 && (
+                      <span className="text-sm font-medium text-cream ml-1">
+                        +&euro;{percentAddonTotal}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -545,7 +577,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
           </div>
         )}
 
-        {/* Discount message — accordion style */}
+        {/* Discount message - accordion style */}
         {unlockState?.nextMilestone && unlockState.nextMilestone.discount_percent > unlockState.discountPct ? (
           <div className="bg-lime/5 border border-lime/20 rounded-brand px-4 py-3">
             <div className="flex items-center gap-2">
@@ -562,7 +594,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             </div>
             {showDiscountInfo && (
               <p className="text-cream-31 text-[11px] mt-2 leading-relaxed">
-                Every new client takes time to set up — learning your brand, style, and preferences.
+                Every new client takes time to set up - learning your brand, style, and preferences.
                 As we work together and refine the process, production gets faster and our margins improve.
                 Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
                 The more we collaborate, the cheaper it gets. Simple as that.
@@ -585,7 +617,7 @@ export default function RecipeDetailModal({ recipe, onClose, userDiscountPct = 0
             </div>
             {showDiscountInfo && (
               <p className="text-cream-31 text-[11px] mt-2 leading-relaxed">
-                Every new client takes time to set up — learning your brand, style, and preferences.
+                Every new client takes time to set up - learning your brand, style, and preferences.
                 As we work together and refine the process, production gets faster and our margins improve.
                 Instead of pocketing the difference, we pass those savings to you. Discounts can reach up to 25% as you post more.
                 The more we collaborate, the cheaper it gets. Simple as that.

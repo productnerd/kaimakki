@@ -195,7 +195,7 @@ export default function BriefFormModal({ order, onClose, onSaved }: BriefFormMod
           </div>
         ) : (
           <p className="text-cream-31 text-sm text-center pt-2">
-            This brief is locked — your order is already in production.
+            This brief is locked - your order is already in production.
           </p>
         )}
       </div>

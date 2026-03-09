@@ -33,6 +33,7 @@ export type CartItem = {
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
   needs_expedited: boolean;
+  extra_duration_qty: number;
   recipe_mode: string;
   selected_use_case?: string;
   bundle_id?: string;
@@ -45,6 +46,7 @@ export type AddItemExtras = {
   needs_stock_footage?: boolean;
   needs_ai_voice?: boolean;
   needs_expedited?: boolean;
+  extra_duration_qty?: number;
   recipe_mode?: "donkey" | "creative";
   selected_use_case?: string;
   bundle_id?: string;
@@ -403,6 +405,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
         needs_expedited: extras?.needs_expedited ?? false,
+        extra_duration_qty: extras?.extra_duration_qty ?? 0,
         recipe_mode: mode,
         selected_use_case: extras?.selected_use_case,
         bundle_id: extras?.bundle_id,
@@ -473,6 +476,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         needs_stock_footage: extras?.needs_stock_footage ?? false,
         needs_ai_voice: extras?.needs_ai_voice ?? false,
         needs_expedited: extras?.needs_expedited ?? false,
+        extra_duration_qty: extras?.extra_duration_qty ?? 0,
         recipe_mode: extras?.recipe_mode ?? "donkey",
         selected_use_case: extras?.selected_use_case ?? null,
         bundle_id: extras?.bundle_id ?? null,

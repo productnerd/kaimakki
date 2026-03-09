@@ -13,6 +13,7 @@ export type Milestone = {
   support_level: string;
   perks: { label: string; icon: string; category?: string }[];
   addon_price_overrides?: Record<string, number>;
+  duration_bonus_seconds: number;
 };
 
 export type UnlockState = {
@@ -35,7 +36,7 @@ export type UnlockState = {
 
 /**
  * Compute the full unlock state for a user given their lifetime video count.
- * Milestones are cumulative — values from all reached milestones are merged.
+ * Milestones are cumulative - values from all reached milestones are merged.
  */
 export function getUnlockState(
   lifetimeCount: number,
@@ -62,7 +63,7 @@ export function getUnlockState(
 
   for (const ms of sorted) {
     if (lifetimeCount >= ms.min_videos) {
-      // User has reached this milestone — merge everything
+      // User has reached this milestone - merge everything
       tier = ms.tier_name;
       discountPct = Math.max(discountPct, ms.discount_percent);
       maxDuration = Math.max(maxDuration, ms.max_duration_seconds);

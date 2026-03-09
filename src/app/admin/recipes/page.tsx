@@ -137,7 +137,7 @@ export default function AdminRecipesPage() {
                     <Field label="Min tier videos" value={String(r.min_tier_videos)} />
                     <Field label="Sort order" value={String(r.sort_order)} />
                     <Field label="Type" value={r.recipe_type} />
-                    <Field label="Tag" value={r.tag ?? "—"} />
+                    <Field label="Tag" value={r.tag ?? "-"} />
                     <Field label="Active" value={r.is_active ? "Yes" : "No"} />
                     <Field label="Created" value={new Date(r.created_at).toLocaleDateString()} />
                   </div>
@@ -193,7 +193,7 @@ export default function AdminRecipesPage() {
                                 <td className="px-3 py-1.5 text-cream-31">{f.type}</td>
                                 <td className="px-3 py-1.5 text-cream-31">{f.required ? "yes" : "no"}</td>
                                 <td className="px-3 py-1.5 text-cream-31">{f.mode ?? "both"}</td>
-                                <td className="px-3 py-1.5 text-cream-31">{f.weHandleLabel ?? "—"}</td>
+                                <td className="px-3 py-1.5 text-cream-31">{f.weHandleLabel ?? "-"}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -214,8 +214,8 @@ export default function AdminRecipesPage() {
 
                   {/* URLs */}
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Thumbnail URL" value={r.example_thumbnail_url ?? "—"} mono />
-                    <Field label="Video URL" value={r.example_video_url ?? "—"} mono />
+                    <Field label="Thumbnail URL" value={r.example_thumbnail_url ?? "-"} mono />
+                    <Field label="Video URL" value={r.example_video_url ?? "-"} mono />
                   </div>
 
                   {/* Example URLs */}

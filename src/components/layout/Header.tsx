@@ -7,7 +7,6 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useCart } from "@/providers/CartProvider";
 import Button from "@/components/ui/Button";
 import { useState } from "react";
-import { VERTICALS, VERTICAL_SLUGS } from "@/lib/verticals";
 
 export default function Header() {
   const pathname = usePathname();
@@ -54,47 +53,26 @@ export default function Header() {
               >
                 SIGN OUT
               </button>
-              {/* Cart button — far right */}
-              <button
-                ref={cartButtonRef}
-                onClick={toggleCart}
-                className="relative text-cream-78 hover:text-cream transition-colors"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
-                </svg>
-                {itemCount > 0 && (
+              {/* Cart button - far right, hidden when empty */}
+              {itemCount > 0 && (
+                <button
+                  ref={cartButtonRef}
+                  onClick={toggleCart}
+                  className="relative text-cream-78 hover:text-cream transition-colors"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
+                  </svg>
                   <span
                     className={`absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center transition-transform ${bump ? "scale-150" : "scale-100"}`}
                   >
                     {itemCount}
                   </span>
-                )}
-              </button>
+                </button>
+              )}
             </div>
           ) : !loading ? (
             <>
-              <div className="relative group">
-                <button className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors flex items-center gap-1">
-                  INDUSTRIES
-                  <svg className="w-3 h-3 transition-transform group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
-                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                  <div className="bg-surface border border-border rounded-brand py-2 min-w-[200px] shadow-lg">
-                    {VERTICAL_SLUGS.map((slug) => (
-                      <Link
-                        key={slug}
-                        href={`/for/${slug}`}
-                        className="block px-4 py-2 text-xs uppercase tracking-wider text-cream-78 hover:text-cream hover:bg-background/50 transition-colors"
-                      >
-                        {VERTICALS[slug].name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
               <Link
                 href="/pricing"
                 className="text-xs uppercase tracking-wider text-cream-78 hover:text-cream transition-colors"
@@ -104,23 +82,23 @@ export default function Header() {
               <Link href="/auth/login">
                 <Button variant="secondary" size="sm" className="uppercase tracking-wider text-xs">SIGN IN</Button>
               </Link>
-              {/* Cart button — far right */}
-              <button
-                ref={cartButtonRef}
-                onClick={toggleCart}
-                className="relative text-cream-78 hover:text-cream transition-colors"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
-                </svg>
-                {itemCount > 0 && (
+              {/* Cart button - far right, hidden when empty */}
+              {itemCount > 0 && (
+                <button
+                  ref={cartButtonRef}
+                  onClick={toggleCart}
+                  className="relative text-cream-78 hover:text-cream transition-colors"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
+                  </svg>
                   <span
                     className={`absolute -top-1.5 -right-1.5 bg-accent text-cream text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center transition-transform ${bump ? "scale-150" : "scale-100"}`}
                   >
                     {itemCount}
                   </span>
-                )}
-              </button>
+                </button>
+              )}
             </>
           ) : null}
         </div>
@@ -175,16 +153,6 @@ export default function Header() {
             </>
           ) : (
             <>
-              {VERTICAL_SLUGS.map((slug) => (
-                <Link
-                  key={slug}
-                  href={`/for/${slug}`}
-                  className="text-xs uppercase tracking-wider text-cream-61 pl-3"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {VERTICALS[slug].name}
-                </Link>
-              ))}
               <Link href="/pricing" className="text-xs uppercase tracking-wider text-cream-78" onClick={() => setMobileOpen(false)}>
                 LOYALTY PROGRAM
               </Link>

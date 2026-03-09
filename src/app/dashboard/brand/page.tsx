@@ -345,7 +345,7 @@ export default function BrandAssetsPage() {
                 Content Strategy
               </h2>
               <p className="text-cream-31 text-sm mt-1">
-                Tell us what you post about, your style, topics, audience — anything that helps us nail your vibe.
+                Tell us what you post about, your style, topics, audience - anything that helps us nail your vibe.
               </p>
             </div>
 
@@ -360,7 +360,7 @@ export default function BrandAssetsPage() {
             {/* Document upload */}
             <div className="border-t border-border pt-4">
               <p className="text-sm text-cream-61 mb-3">
-                Or upload a strategy document (PDF, DOCX, TXT — max 10MB)
+                Or upload a strategy document (PDF, DOCX, TXT - max 10MB)
               </p>
 
               {strategyDocName ? (
@@ -419,7 +419,7 @@ export default function BrandAssetsPage() {
                     <Badge>Coming Soon</Badge>
                   </div>
                   <p className="text-cream-31 text-xs">
-                    We&apos;ll build you a full content strategy — topics, formats, posting schedule, the works.
+                    We&apos;ll build you a full content strategy - topics, formats, posting schedule, the works.
                   </p>
                 </div>
               </div>
@@ -436,7 +436,7 @@ export default function BrandAssetsPage() {
                   Stylistic Preferences
                 </h2>
                 <p className="text-cream-31 text-sm mt-1">
-                  Colors, fonts, transitions, pacing — your visual fingerprint.
+                  Colors, fonts, transitions, pacing - your visual fingerprint.
                 </p>
               </div>
               <Badge>Coming Soon</Badge>

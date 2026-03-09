@@ -22,6 +22,8 @@ type GroupedItem = {
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
   needs_expedited: boolean;
+  extra_duration_qty: number;
+  recipe_base_cents: number;
   recipe_mode: string;
   selected_use_case?: string;
   ids: string[];
@@ -36,12 +38,17 @@ function getExtrasTotal(g: {
   needs_stock_footage: boolean;
   needs_ai_voice: boolean;
   needs_expedited: boolean;
+  extra_duration_qty?: number;
+  recipe_base_cents?: number;
 }): number {
   let extras = 0;
   if (g.needs_additional_format) extras += 2000;
   if (g.needs_stock_footage) extras += 1500;
   if (g.needs_ai_voice) extras += 2500;
   if (g.needs_expedited) extras += 4000;
+  if ((g.extra_duration_qty ?? 0) > 0 && g.recipe_base_cents) {
+    extras += Math.round(g.recipe_base_cents * 0.25 * (g.extra_duration_qty ?? 0));
+  }
   return extras;
 }
 
@@ -71,7 +78,7 @@ function CartItemCard({ g, onRemove }: { g: GroupedItem; onRemove?: () => void }
               {g.recipe_mode === "creative" ? "🎬 Full Production" : "🫏 Donkey"}
             </span>
             {g.selected_use_case && (
-              <span className="text-[10px] text-cream-61 bg-cream-20/30 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] text-cream bg-cream-20/40 px-1.5 py-0.5 rounded-full">
                 {g.selected_use_case}
               </span>
             )}
@@ -86,6 +93,9 @@ function CartItemCard({ g, onRemove }: { g: GroupedItem; onRemove?: () => void }
             )}
             {g.needs_expedited && (
               <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">+rush</span>
+            )}
+            {g.extra_duration_qty > 0 && (
+              <span className="text-[10px] text-lime bg-lime/10 px-1.5 py-0.5 rounded-full">+{g.extra_duration_qty * 15}s</span>
             )}
           </div>
         </div>
@@ -144,7 +154,7 @@ export default function CartDrawer() {
   for (const item of pricedItems) {
     const isSession = SESSION_SLUGS.has(item.recipe_slug ?? "");
     if (isSession) {
-      // Sessions are never grouped — show each individually
+      // Sessions are never grouped - show each individually
       grouped.push({
         key: `session-${item.id}`,
         recipe_name: item.recipe_name ?? "",
@@ -157,13 +167,15 @@ export default function CartDrawer() {
         needs_stock_footage: false,
         needs_ai_voice: false,
         needs_expedited: false,
+        extra_duration_qty: 0,
+        recipe_base_cents: 0,
         recipe_mode: "donkey",
         ids: [item.id],
         quantity: 1,
       });
       continue;
     }
-    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.needs_expedited}|${item.discount_pct}|${item.recipe_mode}|${item.selected_use_case ?? ""}|${item.bundle_id ?? ""}`;
+    const key = `${item.recipe_id}|${item.needs_additional_format}|${item.needs_stock_footage}|${item.needs_ai_voice}|${item.needs_expedited}|${item.extra_duration_qty ?? 0}|${item.discount_pct}|${item.recipe_mode}|${item.selected_use_case ?? ""}|${item.bundle_id ?? ""}`;
     const existing = grouped.find((g) => g.key === key);
     if (existing) {
       existing.ids.push(item.id);
@@ -181,6 +193,8 @@ export default function CartDrawer() {
         needs_stock_footage: item.needs_stock_footage,
         needs_ai_voice: item.needs_ai_voice,
         needs_expedited: item.needs_expedited,
+        extra_duration_qty: item.extra_duration_qty ?? 0,
+        recipe_base_cents: item.price_cents ?? 0,
         recipe_mode: item.recipe_mode ?? "donkey",
         selected_use_case: item.selected_use_case,
         ids: [item.id],
@@ -240,7 +254,7 @@ export default function CartDrawer() {
         const { data: { session } } = await supabase.auth.getSession();
         headers.Authorization = `Bearer ${session?.access_token}`;
       } else {
-        // Guest checkout — send email + cart items
+        // Guest checkout - send email + cart items
         body = JSON.stringify({
           guest_email: guestEmail,
           guest_cart: items.map((i) => ({
@@ -250,6 +264,7 @@ export default function CartDrawer() {
             needs_stock_footage: i.needs_stock_footage,
             needs_ai_voice: i.needs_ai_voice,
             needs_expedited: i.needs_expedited,
+            extra_duration_qty: i.extra_duration_qty ?? 0,
             selected_use_case: i.selected_use_case ?? null,
           })),
         });

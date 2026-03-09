@@ -76,7 +76,7 @@ export default function RewardsTracker({
 
   return (
     <div className="space-y-8">
-      {/* Stats bar — dashboard only */}
+      {/* Stats bar - dashboard only */}
       {mode === "dashboard" && (
         <div className="grid grid-cols-3 gap-4">
           <StatCard
@@ -160,25 +160,30 @@ export default function RewardsTracker({
             const first = milestones.find((m) => m.custom_requests_unlocked);
             if (first?.id === ms.id) features.push({ icon: "✏️", label: "Custom requests" });
           }
-          if (i > 0) {
-            features.push({ icon: "⏱️", label: `+${i * 5}s duration bonus` });
+          const prevBonus = i > 0 ? milestones[i - 1].duration_bonus_seconds ?? 0 : 0;
+          if ((ms.duration_bonus_seconds ?? 0) > prevBonus) {
+            features.push({ icon: "⏱️", label: `+${ms.duration_bonus_seconds}s duration bonus` });
           }
 
           // Support perks only
           const supportPerks: CatItem[] = [];
+          const merchPerks: CatItem[] = [];
           for (const perk of ms.perks) {
             if (perk.label.includes("discount")) continue;
             if (perk.category === "support") supportPerks.push(perk);
+            if (perk.category === "merch") merchPerks.push(perk);
           }
 
           // Cumulative data for "Full package" expansion
           const cumRecipes: CatItem[] = [];
           const cumFeatures: CatItem[] = [];
           const cumSupport: CatItem[] = [];
+          const cumMerch: CatItem[] = [];
           if (i > 0 && expandedTiers.has(ms.id)) {
             const seenR = new Set<string>();
             const seenF = new Set<string>();
             const seenS = new Set<string>();
+            const seenM = new Set<string>();
             for (let j = 0; j <= i; j++) {
               const m = milestones[j];
               for (const slug of m.unlocked_recipe_slugs) {
@@ -220,9 +225,15 @@ export default function RewardsTracker({
                   seenS.add(perk.label);
                   cumSupport.push(perk);
                 }
+                if (perk.category === "merch" && !seenM.has(perk.label)) {
+                  seenM.add(perk.label);
+                  cumMerch.push(perk);
+                }
               }
             }
-            cumFeatures.push({ icon: "⏱️", label: `+${i * 5}s duration bonus` });
+            if ((ms.duration_bonus_seconds ?? 0) > 0) {
+              cumFeatures.push({ icon: "⏱️", label: `+${ms.duration_bonus_seconds}s duration bonus` });
+            }
           }
 
           return (
@@ -240,7 +251,7 @@ export default function RewardsTracker({
                   }
                 `}
               >
-                {/* Pulsing dot — Rookie on pricing page */}
+                {/* Pulsing dot - Rookie on pricing page */}
                 {isRookie && (
                   <div className="absolute top-5 right-5">
                     <div className="w-2 h-2 rounded-full bg-accent" />
@@ -338,7 +349,7 @@ export default function RewardsTracker({
                   )}
                 </div>
 
-                {/* Progress bar — next tier to unlock */}
+                {/* Progress bar - next tier to unlock */}
                 {isNext && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1.5">
@@ -364,21 +375,21 @@ export default function RewardsTracker({
                   </div>
                 )}
 
-                {/* Tier upgrade form — show when eligible and no pending request */}
+                {/* Tier upgrade form - show when eligible and no pending request */}
                 {isNext && upgradeCheck.eligible && !pendingUpgradeRequest && brandId && (
                   <TierUpgradeForm brandId={brandId} milestoneId={ms.id} />
                 )}
                 {isNext && pendingUpgradeRequest && (
                   <div className="mb-4 p-3 rounded-brand bg-amber-500/10 border border-amber-500/20">
                     <p className="text-amber-400 text-xs font-medium">
-                      Proof submitted — waiting for review
+                      Proof submitted - waiting for review
                     </p>
                   </div>
                 )}
 
                 {/* Categorized unlocks */}
                 <div className={`space-y-3 ${isLocked && !isRookie ? "opacity-75" : ""}`}>
-                  {/* Recipes — accent mini cards */}
+                  {/* Recipes - accent mini cards */}
                   {recipes.length > 0 && (
                     <div>
                       <p className="text-[9px] uppercase tracking-widest font-medium text-accent/70 mb-1.5">Recipes</p>
@@ -407,7 +418,7 @@ export default function RewardsTracker({
                     </div>
                   )}
 
-                  {/* Features — lime pills */}
+                  {/* Features - lime pills */}
                   {features.length > 0 && (
                     <div>
                       <p className="text-[9px] uppercase tracking-widest font-medium text-lime/70 mb-1.5">Features</p>
@@ -436,7 +447,7 @@ export default function RewardsTracker({
                     </div>
                   )}
 
-                  {/* Support — left-bordered list */}
+                  {/* Support - left-bordered list */}
                   {supportPerks.length > 0 && (
                     <div>
                       <p className="text-[9px] uppercase tracking-widest font-medium text-cream-31 mb-1.5">Support</p>
@@ -449,6 +460,32 @@ export default function RewardsTracker({
                             <span className={`text-sm ${isCurrent || isUnlocked || isRookie ? "text-cream-78" : "text-cream-31"}`}>
                               {s.label}
                             </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Merch - gift-style cards */}
+                  {merchPerks.length > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest font-medium text-amber-400/70 mb-1.5">Merch</p>
+                      <div className="flex flex-wrap gap-2">
+                        {merchPerks.map((m) => (
+                          <div
+                            key={m.label}
+                            className={`
+                              flex items-center gap-2 px-3 py-2 rounded-xl border
+                              ${isCurrent
+                                ? "bg-amber-400/10 border-amber-400/20 text-amber-400"
+                                : isUnlocked || isRookie
+                                  ? "bg-amber-400/10 border-amber-400/20 text-amber-400/80"
+                                  : "bg-background/70 border-border/70 text-cream-61"
+                              }
+                            `}
+                          >
+                            <span className="text-base">{m.icon}</span>
+                            <span className="text-sm font-medium">{m.label}</span>
                           </div>
                         ))}
                       </div>
@@ -500,6 +537,19 @@ export default function RewardsTracker({
                               <div key={s.label} className="flex items-center gap-2">
                                 <span className="text-sm">{s.icon}</span>
                                 <span className="text-sm text-cream-61">{s.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {cumMerch.length > 0 && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest font-medium text-amber-400/70 mb-1.5">All Merch</p>
+                          <div className="flex flex-wrap gap-2">
+                            {cumMerch.map((m) => (
+                              <div key={m.label} className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-amber-400/5 border-amber-400/10 text-amber-400/70">
+                                <span className="text-base">{m.icon}</span>
+                                <span className="text-sm font-medium">{m.label}</span>
                               </div>
                             ))}
                           </div>
@@ -584,7 +634,7 @@ function TierUpgradeForm({
     return (
       <div className="mb-4 p-3 rounded-brand bg-amber-500/10 border border-amber-500/20">
         <p className="text-amber-400 text-xs font-medium">
-          Proof submitted — waiting for review
+          Proof submitted - waiting for review
         </p>
       </div>
     );

@@ -33,7 +33,7 @@ export default function CheckoutSuccessPage() {
 
           <p className="text-cream-61 text-sm">
             We&apos;re already on it. Send your footage, post the videos, and keep the
-            streak going — or a charity gets a nice surprise. Clock&apos;s ticking.
+            streak going - or a charity gets a nice surprise. Clock&apos;s ticking.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-4">

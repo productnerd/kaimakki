@@ -9,6 +9,7 @@ export const RECIPE_ICONS: Record<string, string> = {
   "screen-recording-voiceover": "🖥️",
   "announcement-teaser": "📣",
   "carousel-style-video": "🎠",
+  "custom-request": "🎯",
 };
 
 export function getRecipeIcon(slug: string | null | undefined): string {

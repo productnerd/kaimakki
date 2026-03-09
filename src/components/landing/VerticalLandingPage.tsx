@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 import RecipeDetailModal from "@/components/recipes/RecipeDetailModal";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCart } from "@/providers/CartProvider";
+import HowItWorks from "@/components/landing/HowItWorks";
 
 type UseCase = { id: string; name: string; sort_order: number; isRecommended?: boolean };
 
@@ -32,7 +33,7 @@ type Recipe = {
   creative_surcharge_percent: number;
   example_urls: string[];
   recipe_use_cases: { id: string; name: string; isRecommended?: boolean }[];
-  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
+  recipe_addons?: { id: string; addon_key: string; label: string; sublabel: string | null; price_cents: number; price_percent: number | null; max_quantity: number; unlock_addon_key: string | null; unlock_requires_landscape: boolean; sort_order: number }[];
 };
 
 const DIFFICULTY_RANK: Record<string, number> = {
@@ -95,7 +96,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       // Fetch all active video recipes with their use cases
       const { data: rawRecipes } = await supabase
         .from("video_recipes")
-        .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, unlock_addon_key, unlock_requires_landscape, sort_order)")
+        .select("*, recipe_use_cases(id, name, sort_order), recipe_addons(id, addon_key, label, sublabel, price_cents, price_percent, max_quantity, unlock_addon_key, unlock_requires_landscape, sort_order)")
         .eq("is_active", true)
         .eq("recipe_type", "video")
         .order("sort_order");
@@ -280,20 +281,31 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       />
 
       {/* Hero */}
-      <header className="text-center mb-16">
-        <h1 className="font-display font-black text-4xl md:text-6xl text-cream mb-4 tracking-tight">
-          {meta.headline}
+      <header className="mb-16">
+        <div className="flex items-center gap-4 text-cream-61 mb-3">
+          {/* Instagram */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          {/* TikTok */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.75a8.18 8.18 0 004.77 1.52V6.84a4.84 4.84 0 01-1-.15z"/></svg>
+          {/* YouTube */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          {/* LinkedIn */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          {/* X / Twitter */}
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </div>
+        <p className="text-cream-31 text-xs uppercase tracking-widest mb-3">Social media videos made easy for {meta.name}</p>
+        <h1 className="font-display font-black text-4xl md:text-6xl mb-4 tracking-tight">
+          <span className="text-cream">Short videos online</span><br />
+          <span className="text-accent">{meta.name}</span>
         </h1>
-        <p className="text-cream-61 text-lg max-w-2xl mx-auto">
-          {meta.subtitle}
-        </p>
       </header>
 
       {/* Recipe grid */}
       <section>
         {!loading && recipes.length > 0 && (
           <div className="flex justify-center mb-3">
-            <p className="text-cream-31 text-xs">⭐ = Recommended for {meta.name}</p>
+            <span className="text-xs text-cream-61 bg-surface border border-border rounded-full px-3 py-1.5 font-bold">⭐ Recommended for {meta.name}</span>
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -453,49 +465,31 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
           <p className="text-cream-61 text-sm mb-8 max-w-lg mx-auto">
             Your first order comes with two free sessions to make sure you actually know what you&apos;re doing.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-            <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display font-bold text-sm text-cream">
-                  <span className="mr-1.5">🧠</span>1-on-1 Content Strategy Session
+          <div className="flex flex-col gap-3 max-w-2xl mx-auto">
+            <div className="bg-background rounded-brand p-4 border border-dashed border-accent/30">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-cream text-sm">
+                  <span className="mr-1">🧠</span>1-on-1 Content Strategy Session
                 </h3>
                 <div className="flex items-center gap-1.5">
                   <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
-                  <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
+                  <span className="font-display font-bold text-cream">&euro;0</span>
                 </div>
               </div>
-              <ul className="text-cream-61 text-xs space-y-1.5">
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Content pillars definition</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Audience definition &amp; targeting</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Topic &amp; video ideas list</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Posting cadence &amp; schedule</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Platform strategy</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Competitor &amp; trend analysis</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Hook &amp; CTA frameworks</li>
-              </ul>
             </div>
-            <div className="rounded-brand border border-dashed border-accent/30 bg-accent/5 p-5 text-left">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display font-bold text-sm text-cream">
-                  <span className="mr-1.5">🎨</span>Video Branding Guidelines
+            <div className="bg-background rounded-brand p-4 border border-dashed border-accent/30">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-cream text-sm">
+                  <span className="mr-1">🎨</span>Video Branding Guidelines
                 </h3>
                 <div className="flex items-center gap-1.5">
                   <span className="font-display text-xs text-cream-31 line-through">&euro;150</span>
-                  <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-medium">FREE</span>
+                  <span className="font-display font-bold text-cream">&euro;0</span>
                 </div>
               </div>
-              <ul className="text-cream-61 text-xs space-y-1.5">
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Brand voice &amp; communication style</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Visual style &amp; colour palette</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Typography &amp; text treatments</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Animation &amp; transition style</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Image &amp; footage direction</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Pacing &amp; rhythm guidelines</li>
-                <li className="flex items-start gap-1.5"><span className="text-accent">✓</span>Music &amp; sound direction</li>
-              </ul>
             </div>
           </div>
-          <p className="text-cream-31 text-[10px] mt-3">&euro;300 value — included free with your first order of 3+ videos</p>
+          <p className="text-cream-31 text-[10px] mt-3">&euro;300 value - included free with your first order of 3+ videos</p>
         </section>
       )}
 
@@ -503,7 +497,8 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
       {!loading && starterRecipes.length > 0 && (
         <section className="mt-10">
           <h2 className="font-display font-bold text-2xl text-cream mb-6">
-            Can&apos;t decide? Pick a bundle
+            Can&apos;t decide?<br />
+            Pick our recommended {meta.name} bundle
           </h2>
           <div className="flex flex-col gap-8">
             {bundles.map((bundle) => (
@@ -519,7 +514,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                   <p className="text-cream-61 text-sm">{bundle.description}</p>
                 </div>
 
-                {/* Recipe cards grid — same card as main grid, no price/+ button */}
+                {/* Recipe cards grid - same card as main grid, no price/+ button */}
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
                   {bundle.recipes.map((recipe) => {
                     const thumbnail = getThumbnailUrl(recipe);
@@ -551,7 +546,7 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
                         {/* Bottom gradient */}
                         <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-[1]" />
 
-                        {/* Content overlay — same structure as main grid */}
+                        {/* Content overlay - same structure as main grid */}
                         <div className="absolute inset-0 p-3 flex flex-col z-[2]">
                           {/* Top: badge + stats */}
                           <div className="flex items-start justify-between mb-2">
@@ -658,77 +653,9 @@ export default function VerticalLandingPage({ vertical }: { vertical: string }) 
         </section>
       )}
 
-      {/* How it works */}
-      <section className="mt-16">
-        <h2 className="font-display font-bold text-2xl text-cream mb-8">How it works</h2>
-        <div className="max-w-2xl mx-auto">
-          {/* Onboarding steps (linear) */}
-          {[
-            { icon: "🛒", title: "Pick your videos", desc: "Choose 3+ video recipes that fit your goals. Mix and match, or grab a bundle.", tag: null },
-            { icon: "📋", title: "Fill in the questionnaire", desc: "Answer a few questions about your brand, audience, and goals so we know what we're working with.", tag: null },
-            { icon: "🧠", title: "Strategy session + meet your account manager", desc: "A 1-on-1 call with a real human. We map out your content pillars, topics, posting cadence, and game plan. You also get a dedicated account manager and a direct channel — questions, feedback, weird requests — they've got you.", tag: "First order" },
-            { icon: "📦", title: "Your strategy pack", desc: "After the session, you get your video branding guidelines (visual style, colours, animation, pacing, music direction), a content calendar, and all the video ideas — ready to go.", tag: "First order" },
-          ].map((s, i) => (
-            <div key={i} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-sm shrink-0">
-                  {s.icon}
-                </div>
-                <div className="w-px flex-1 bg-border my-1" />
-              </div>
-              <div className="pb-6">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display font-bold text-sm text-cream">{s.title}</h3>
-                  {s.tag && (
-                    <span className="text-[9px] text-accent bg-accent/10 border border-accent/30 px-1.5 py-0.5 rounded-full">{s.tag}</span>
-                  )}
-                </div>
-                <p className="text-cream-61 text-xs mt-1">{s.desc}</p>
-              </div>
-            </div>
-          ))}
+      <HowItWorks />
 
-          {/* Repeat loop */}
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <div className="w-px bg-border" style={{ height: 8 }} />
-            </div>
-            <div />
-          </div>
-          <div className="relative ml-4 border border-accent/20 rounded-brand p-5 pl-8 mb-2">
-            {/* Loop label */}
-            <div className="absolute -top-3 left-4 bg-accent border border-accent rounded-full px-3 py-0.5 flex items-center">
-              <span className="text-[10px] text-background font-medium leading-none">↩ Pick more videos &amp; repeat</span>
-            </div>
-
-            {[
-              { icon: "🎬", title: "Film your footage", desc: "We send you a shot list for each video. You film on your phone. No fancy gear needed." },
-              { icon: "📤", title: "Send us the footage", desc: "Upload your clips. We take it from here." },
-              { icon: "✂️", title: "We edit", desc: "Our editors turn your footage into scroll-stoppers using your branding guidelines." },
-              { icon: "🔄", title: "Review + 1 free revision", desc: "Watch your video. Don't love something? Give feedback and we'll revise it once — on us." },
-              { icon: "🚀", title: "You post (or else)", desc: "Get your final video and post it within 30 days. Ghost us? We donate part of your prepayment to charity. You're welcome." },
-            ].map((s, i, arr) => (
-              <div key={i} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-sm shrink-0">
-                    {s.icon}
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div className="w-px flex-1 bg-accent/20 my-1" />
-                  )}
-                </div>
-                <div className={i < arr.length - 1 ? "pb-5" : ""}>
-                  <h3 className="font-display font-bold text-sm text-cream">{s.title}</h3>
-                  <p className="text-cream-61 text-xs mt-1">{s.desc}</p>
-                </div>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      </section>
-
-      {/* Other verticals — ticker */}
+      {/* Other verticals - ticker */}
       <section className="mt-16">
         <h2 className="font-display font-bold text-2xl text-cream mb-6">
           Explore other industries
